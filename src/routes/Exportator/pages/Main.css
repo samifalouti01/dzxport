@@ -1,0 +1,21 @@
+/* Main.css */
+.main {
+  text-align: center;
+  background-color: #f2f2f2;
+  margin: 0;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .main-container > *:not(.navbar) {
+    flex: 1; /* Take up remaining space */
+    padding: 20px; /* Add some padding */
+    overflow-y: auto; /* Enable scrolling for content */
+    margin: 0;
+    padding: 0;
+  }

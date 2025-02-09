@@ -1,0 +1,101 @@
+.order-container {
+    margin: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  th {
+    background-color: #007bff;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    color: white;
+  }
+  
+  tr:hover {
+    background-color: #f1f1f1;
+  }
+  
+  button {
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    outline: none;
+    background-color: white;
+    cursor: pointer;
+    color: #000;
+    transition: background-color 0.3s;
+  }
+  
+  button:hover {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  .loading, .error {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #555;
+  }
+  
+  @media (max-width: 768px) {
+    .order-container {
+      margin: 10px;
+      padding: 15px;
+    }
+  
+    th, td {
+      padding: 8px;
+    }
+  
+    button {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+  
+    table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .loading, .error {
+      font-size: 16px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .order-container {
+      margin: 5px;
+      padding: 10px;
+    }
+  
+    th, td {
+      padding: 6px;
+    }
+  
+    button {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+  }
+  

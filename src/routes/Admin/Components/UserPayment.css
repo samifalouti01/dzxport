@@ -1,0 +1,31 @@
+.payments-container {
+    padding: 20px;
+    background-color: #f9f9f9;
+  }
+  
+  .payments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+  }
+  
+  .payments-table th,
+  .payments-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+  }
+  
+  .payments-table th {
+    background-color: #f2f2f2;
+  }
+  
+  .active-status {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .inactive-status {
+    color: red;
+    font-weight: bold;
+  }

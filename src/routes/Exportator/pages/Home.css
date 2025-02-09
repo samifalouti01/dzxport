@@ -1,0 +1,119 @@
+  /* List Container */
+  .Home {
+    min-height: 80vh;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    margin-bottom: 80px;
+  }
+  
+  /* Post Item Styling */
+  .post {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .post h1 {
+    font-size: 20px;
+    color: #000; 
+    margin-bottom: 20px;
+    font-weight: bold;
+  }
+  
+  .post p {
+    margin: 10px 0;
+    font-size: 14px;
+    color: #000;
+  }
+  
+  .post span {
+    display: inline-block;
+    margin-right: 10px;
+    font-size: 16px;
+    color: #7b00a8;
+  }
+  
+  /* Hover Effects */
+  .post:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+  }
+  
+  .time {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .time p {
+    font-size: 14px;
+    color: #8f8f8f;
+  }
+
+  .time i {
+    font-size: 1rem;
+    color: #8f8f8f;
+}
+
+.details {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  border: 1px solid #e0e0e0;
+}
+
+.details a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.details a:hover {
+  text-decoration: underline;
+}
+
+.details-button {
+  background: #7b00a8;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.details-button:hover {
+  background: #7b00a8;
+}
+
+.details-button.enabled {
+  background: #7b00a8;
+  color: white;
+  border: none;
+}
+
+.details-button.enabled:hover {
+  background: #7b00a8;
+}
+
+.details-button.disabled {
+  background: linear-gradient(to right, #f39c1220, #e67e2220);
+  color: #f39c12;
+  border: none;
+  cursor: not-allowed;
+}

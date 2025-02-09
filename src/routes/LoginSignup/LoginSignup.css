@@ -1,0 +1,90 @@
+.login-signup {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 2rem;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.login-signup h2 {
+  font-size: 1.8rem;
+  color: #36006f;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: bold;
+}
+
+.login-signup input,
+.login-signup select {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  background: #f9f9f9;
+}
+
+.login-signup input:focus,
+.login-signup select:focus {
+  outline: none;
+  border-color: #5700b4;
+  box-shadow: 0 0 8px rgba(87, 0, 180, 0.3);
+  background: white;
+}
+
+.login-signup button {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 1rem;
+  background: linear-gradient(90deg, #7b00a8, #5700b4);
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.login-signup button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.login-signup p {
+  margin-top: 1rem;
+  color: #0b12e4;
+  font-size: 0.9rem;
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
+  text-decoration: none;
+}
+
+.notification {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #7b00a8;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+  font-size: 1rem;
+  font-weight: bold;
+  z-index: 1000;
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+  from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+  }
+}

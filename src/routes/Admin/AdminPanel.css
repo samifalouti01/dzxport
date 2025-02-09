@@ -1,0 +1,149 @@
+h1 {
+    color: #ecf0f1;
+}
+
+
+h2 {
+    font-size: 2rem;
+    color: #2d3748;
+    margin-bottom: 12px;
+}
+
+
+.admin-panel {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+}
+
+.logo {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+}
+
+.nav-button {
+    position: relative;
+    width: 100%;
+    padding: 10px 15px;
+    margin: 5px 0;
+    background: none;
+    color: #ecf0f1;
+    border: none;
+    border-radius: 4px;
+    text-align: left;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.notification-circle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background-color: red;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+
+.nav-button.active, .nav-button:hover {
+    background-color: #34495e;
+}
+
+.nav-button:focus {
+    outline: none;
+}
+
+.nav-button svg {
+    font-size: 24px; 
+  }
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #ecf0f1;
+    border-bottom: 1px solid #bdc3c7;
+}
+
+.admin-content {
+    padding: 20px;
+}
+
+.logout-buttonn {
+    padding: 8px 16px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.logout-buttonn:disabled {
+    background-color: #c0392b;
+    cursor: not-allowed;
+}
+
+.logout-icon {
+    margin-right: 8px;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 60px;
+    }
+
+    .nav-button {
+        justify-content: center; 
+        padding: 10px;
+    }
+
+    .nav-button span {
+        display: none; 
+    }
+
+    .logo {
+        display: none; 
+    }
+}
