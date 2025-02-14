@@ -1,0 +1,19 @@
+.notifications-page {
+    padding: 20px;
+  }
+  
+  .notification {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+  }
+  
+  .unread {
+    background-color: #f8f9fa;
+    font-weight: bold;
+  }
+  
+  .read {
+    color: #888;
+  }
+  

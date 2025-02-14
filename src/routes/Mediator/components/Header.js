@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiLogOut } from "react-icons/fi";
-import Logo from '../logo192.png';
-import './Header.css';
 
 const Header = () => {
     const [loading, setLoading] = useState(false);
@@ -23,7 +21,7 @@ const Header = () => {
   return (
     <header className="header">
       <div className="logo-container">
-        <img src={Logo} alt="Logo" className="logo" />
+        <img src="./DzXport.png" alt="Logo" className="logo" />
       </div>
         <button
             className="logout-button"

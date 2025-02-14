@@ -6,12 +6,6 @@
     background-color: #f9f9f9;
   }
   
-  h1 {
-    font-size: 24px;
-    margin-bottom: 20px;
-    color: #7b00a8; /* Highlight color */
-  }
-  
   .post-form {
     width: 100%;
     max-width: 400px;

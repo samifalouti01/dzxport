@@ -17,23 +17,26 @@
   
   /* Post Item Styling */
   .post {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #EBEBEB;
+    border-radius: 20px;
     padding: 20px;
-    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .post img {
+    width: 100%;
+    height: auto;
+    max-height: 200px;
+    border-radius: 10px;
+    margin-bottom: 10px;
   }
   
   .post h1 {
     font-size: 20px;
     color: #000; 
-    margin-bottom: 20px;
     font-weight: bold;
   }
   
   .post p {
-    margin: 10px 0;
     font-size: 14px;
     color: #000;
   }
@@ -42,27 +45,29 @@
     display: inline-block;
     margin-right: 10px;
     font-size: 16px;
-    color: #7b00a8;
+    font-weight: 600;
+    color: #49509E;
   }
   
   /* Hover Effects */
   .post:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
   }
   
   .time {
     display: flex;
     width: 100%;
     flex-direction: row;
-    justify-content: flex-end;
-    align-items: center;
+    justify-content: space-between;
+    align-items: flex-start;
     gap: 10px;
   }
 
   .time p {
     font-size: 14px;
     color: #8f8f8f;
+    min-width: 100px;
+    text-align: end;
   }
 
   .time i {
@@ -87,33 +92,60 @@
   text-decoration: underline;
 }
 
-.details-button {
-  background: #7b00a8;
+.proposal-button {
+  background: #49509E;
   color: white;
   border: none;
   padding: 10px 20px;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
   margin-top: 15px;
+  width: 100%;
 }
 
-.details-button:hover {
-  background: #7b00a8;
+.list-header {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 
-.details-button.enabled {
-  background: #7b00a8;
+.list-header select,
+.list-header input {
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.list-header select:focus,
+.list-header input:focus {
+  outline: none;
+  border-color: #49509E;
+}
+
+.lists-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.lists-buttons button {
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  background: #ddd;
+  color: #333;
+  border: none;
+}
+
+.lists-buttons button.active {
+  background: #49509E;
   color: white;
-  border: none;
+  font-weight: bold;
 }
 
-.details-button.enabled:hover {
-  background: #7b00a8;
-}
-
-.details-button.disabled {
-  background: linear-gradient(to right, #f39c1220, #e67e2220);
-  color: #f39c12;
-  border: none;
-  cursor: not-allowed;
+.no-results {
+  text-align: center;
+  color: #49509E;
+  font-size: 16px;
+  margin-top: 20px;
 }
