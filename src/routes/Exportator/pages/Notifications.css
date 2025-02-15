@@ -1,19 +1,142 @@
-.notifications-page {
+/* Container for all alerts */
+.alert-container {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
     padding: 20px;
-  }
-  
-  .notification {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    cursor: pointer;
-  }
-  
-  .unread {
-    background-color: #f8f9fa;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Individual alert card */
+.alert-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+}
+
+/* Image in the alert */
+.alert-image {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+/* Information section */
+.alert-info {
+    flex: 1;
+}
+
+.alert-info p {
+    font-size: 14px;
+    font-weight: 500;
+    color: #49509E;
+    margin: 4px 0;
+}
+
+.alert-info span {
+    font-size: 14px;
+    font-weight: normal;
+    color: #797979;
+    margin-top: 8px;
+}
+
+/* Title of the alert */
+.alert-title {
+    font-size: 18px;
     font-weight: bold;
+    margin: 0 0 8px;
+    color: #333;
+}
+
+/* Details of the alert */
+.alert-detail {
+    font-size: 14px;
+    color: #555;
+    margin: 4px 0;
+}
+
+/* Timestamp of the alert */
+.alert-timestamp {
+    font-size: 12px;
+    color: #999;
+    margin-top: 8px;
+}
+
+/* User info container */
+.user-info {
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* User info title */
+.user-info h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+/* User info details */
+.user-info p {
+    font-size: 14px;
+    font-weight: normal;
+    color: #797979;
+    margin: 4px 0;
+}
+
+.user-info strong {
+    font-size: 14px;
+    font-weight: 500;
+    color: #49509E;
+}
+
+.backButton {
+    width: auto;
+    font-size: 24px;
+    background: none;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    color: black;
+    transition: color 0.3s ease;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px;
+    text-align: left;
+}
+
+.image-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    z-index: 1000;
   }
   
-  .read {
-    color: #888;
+  .popup-image {
+    max-width: 90%;
+    max-height: 80%;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    transition: transform 0.3s ease-in-out;
   }
+  
+  .alert-image {
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+ 
   

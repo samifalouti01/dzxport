@@ -3,7 +3,6 @@ import NavBar from "../components/NavBar";
 import { Edit2, Save, X } from "lucide-react";
 import { supabase } from "../../../utils/supabaseClient";
 import { useNavigate } from "react-router-dom";
-import "./Profile.css";
 
 const SettingsField = ({ label, value, onSave, type = "text", placeholder = "" }) => {
   const [isEditing, setIsEditing] = useState(false);

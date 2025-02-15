@@ -6,10 +6,13 @@ import "./NavBar.css";
 const NavBar = () => {
   const location = useLocation();
   const [showModal, setShowModal] = useState(false);
+  const [showInput, setShowInput] = useState(false);
   const [formData, setFormData] = useState({
     product: "",
     from: "",
     quantity: "",
+    unity: "",
+    quantityValue: "", // Stocke la valeur de la quantité
     lists: "vendre",
     imageFile: null,
   });
@@ -19,30 +22,35 @@ const NavBar = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+
+    if (name === "unity") {
+      setShowInput(value !== ""); // Affiche l'input si une unité est sélectionnée
+      setFormData({ ...formData, unity: value, quantity: "" });
+    } else if (name === "quantityValue") {
+      setFormData({ ...formData, quantity: value });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleImageUpload = async () => {
     if (!formData.imageFile) return null;
-  
+
     const file = formData.imageFile;
     const filePath = `products/${Date.now()}-${file.name}`;
-  
+
     const { data, error } = await supabase.storage
       .from("products")
       .upload(filePath, file);
-  
+
     if (error) {
       console.error("Image upload error:", error.message);
       return null;
     }
-  
-    // Get the public URL from Supabase
+
     const { data: publicUrlData } = supabase.storage.from("products").getPublicUrl(filePath);
-  
-    return publicUrlData.publicUrl; // Correctly returning the public URL
+    return publicUrlData.publicUrl;
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +68,8 @@ const NavBar = () => {
         {
           product: formData.product,
           from: formData.from,
-          quantity: formData.quantity,
+          quantity: formData.quantity, // Stocke la valeur saisie
+          unity: formData.unity, // Stocke l'unité sélectionnée
           lists: formData.lists,
           image: imageUrl || null,
           user_id: userId,
@@ -69,10 +78,10 @@ const NavBar = () => {
 
       if (error) throw error;
 
-      alert("Post added successfully!");
+      alert("Post ajouté avec succès !");
       closeModal();
     } catch (error) {
-      console.error("Error adding post:", error.message);
+      console.error("Erreur lors de l'ajout du post :", error.message);
     } finally {
       setLoading(false);
     }
@@ -80,10 +89,13 @@ const NavBar = () => {
 
   const closeModal = () => {
     setShowModal(false);
+    setShowInput(false);
     setFormData({
       product: "",
       from: "",
       quantity: "",
+      unity: "",
+      quantityValue: "",
       lists: "vendre",
       imageFile: null,
     });
@@ -97,9 +109,9 @@ const NavBar = () => {
     };
 
     if (showModal) {
-        setTimeout(() => {
-            document.querySelector(".modal").classList.add("slide-in");
-          }, 30);
+      setTimeout(() => {
+        document.querySelector(".modal").classList.add("slide-in");
+      }, 30);
       document.addEventListener("mousedown", handleClickOutside);
     }
 
@@ -108,37 +120,28 @@ const NavBar = () => {
     };
   }, [showModal]);
 
-  const handleTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e) => {
-    const touchEndY = e.touches[0].clientY;
-    if (touchEndY - touchStartY.current > 50) {
-      closeModal();
-    }
-  };
-
   return (
     <>
       <nav className="navbar">
         <Link
-          to="/exportator"
-          className={`nav-item ${location.pathname === "/exportator" ? "active" : ""}`}
+            to="/exportator"
+            className={`nav-item ${location.pathname === "/exportator" ? "active" : ""}`}
         >
-          <i className="bi bi-house nav-icon"></i>
-          <span className="nav-text">Home</span>
+            <i className={`bi ${location.pathname === "/exportator" ? "bi-house-door-fill" : "bi-house"} nav-icon`}></i>
+            <span className="nav-text">Home</span>
         </Link>
+
         <button className="nav-item add-post" onClick={() => setShowModal(true)}>
-          <i className="bi bi-plus-square nav-icon"></i>
-          <span className="nav-text">Add Post</span>
+            <i className="bi bi-plus-square nav-icon"></i>
+            <span className="nav-text">Add Post</span>
         </button>
+
         <Link
-          to="/exportator/profile"
-          className={`nav-item ${location.pathname === "/exportator/profile" ? "active" : ""}`}
+            to="/exportator/profile"
+            className={`nav-item ${location.pathname === "/exportator/profile" ? "active" : ""}`}
         >
-          <i className="bi bi-person nav-icon"></i>
-          <span className="nav-text">Profile</span>
+            <i className={`bi ${location.pathname === "/exportator/profile" ? "bi-person-fill" : "bi-person"} nav-icon`}></i>
+            <span className="nav-text">Profile</span>
         </Link>
       </nav>
 
@@ -147,8 +150,10 @@ const NavBar = () => {
           <div
             className="modal slide-in"
             ref={modalRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
+            onTouchStart={(e) => (touchStartY.current = e.touches[0].clientY)}
+            onTouchMove={(e) => {
+              if (e.touches[0].clientY - touchStartY.current > 50) closeModal();
+            }}
           >
             <button className="close-button" onClick={closeModal}>
               &times;
@@ -171,15 +176,27 @@ const NavBar = () => {
                 onChange={handleChange}
                 required
               />
-              <input
-                type="number"
-                name="quantity"
-                placeholder="Quantité en Kg"
-                value={formData.quantity}
-                onChange={handleChange}
-                required
-              />
-              <select name="lists" value={formData.lists} onChange={handleChange}>
+
+              {/* Sélection de l'unité */}
+              <select name="unity" value={formData.unity} onChange={handleChange} required>
+                <option value="">Sélectionner une unité...</option>
+                <option value="Kg">Kg</option>
+                <option value="Unité">Unité</option>
+              </select>
+
+              {/* Champ quantité visible uniquement si une unité est choisie */}
+              {showInput && (
+                <input
+                  type="number"
+                  name="quantityValue"
+                  placeholder="Quantité"
+                  value={formData.quantity}
+                  onChange={handleChange}
+                  required
+                />
+              )}
+
+              <select name="lists" value={formData.lists} onChange={handleChange} required>
                 <option value="vendre">Vendre</option>
                 <option value="acheter">Acheter</option>
               </select>

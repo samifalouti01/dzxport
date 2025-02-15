@@ -173,7 +173,7 @@ const Home = () => {
                 <p>{calculateTimeElapsed(post.created_at)}</p>
               </div>
               <p>
-                Quantité: <span>{post.quantity} Kg</span>
+                Quantité: <span>{post.quantity} {post.unity}</span>
               </p>
               <p>
                 De: <span>{post.from}</span>

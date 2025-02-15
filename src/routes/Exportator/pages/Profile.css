@@ -19,7 +19,7 @@
   }
   
   .settings-title {
-    color: #7b00a8;
+    color: #49509E;
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0;
@@ -86,12 +86,12 @@
   }
   
   .edit-button:hover {
-    color: #7b00a8;
+    color: #49509E;
     background: rgba(87, 0, 180, 0.1);
   }
   
   .save-button {
-    background: #7b00a8;
+    background: #49509E;
     color: white;
   }
   
@@ -125,13 +125,13 @@
   
   .settings-input:focus {
     outline: none;
-    border-color: #7b00a8;
+    border-color: #49509E;
     box-shadow: 0 0 0 2px rgba(87, 0, 180, 0.2);
   }
   
   .message {
     background: #f8f9fa;
-    border-left: 4px solid #7b00a8;
+    border-left: 4px solid #49509E;
     padding: 1rem;
     margin-bottom: 1rem;
     border-radius: 4px;
