@@ -5,7 +5,10 @@ import MainExportator from './routes/Exportator/pages/Main';
 import Home from './routes/Exportator/pages/Home';
 import Profile from './routes/Exportator/pages/Profile';
 import AddPost from './routes/Exportator/pages/AddPost';
+import Transiteurs from './routes/Exportator/pages/Transiteurs';
+import Accepter from './routes/Exportator/pages/Accepter';
 import Notifications from './routes/Exportator/pages/Notifications';
+import AcceptedPreview from './routes/Exportator/pages/AcceptedPreview';
 import MainMediator from './routes/Mediator/pages/Main';
 import HomeM from './routes/Mediator/pages/Home';
 import ProfileM from './routes/Mediator/pages/Profile';
@@ -18,13 +21,16 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LoginSignup />} />
-        <Route path="/exportator" element={<MainExportator />}>
+        <Route path="/main" element={<MainExportator />}>
           <Route index element={<Home />} />
+          <Route path="transiteurs" element={<Transiteurs />} /> 
+          <Route path="accepter" element={<Accepter />} /> 
           <Route path="profile" element={<Profile />} /> 
           <Route path="addpost" element={<AddPost />} />
           <Route path="notification/:postId" element={<Notifications />} />
+          <Route path="accepted-preview/:postId" element={<AcceptedPreview />} />
         </Route>
-        <Route path="/mediator" element={<MainMediator />}>
+        <Route path="/transit" element={<MainMediator />}>
           <Route index element={<HomeM />} />
           <Route path="profile" element={<ProfileM />} /> 
           <Route path="containers" element={<Containers />} />

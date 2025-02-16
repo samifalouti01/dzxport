@@ -36,6 +36,9 @@ const Home = () => {
   const [activeFilter, setActiveFilter] = useState("vendre"); // Default to "Vendre"
   const [selectedCountry, setSelectedCountry] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [proposalStatuses, setProposalStatuses] = useState({});
+  const [isImageOpen, setIsImageOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
   const { data: fetchedPosts = [], isLoading } = useQuery({
     queryKey: ["posts"],
     queryFn: fetchPosts,
@@ -44,6 +47,7 @@ const Home = () => {
 
   useEffect(() => {
     setPosts(fetchedPosts);
+    fetchProposalStatuses(fetchedPosts);
   }, [fetchedPosts]);
 
   useEffect(() => {
@@ -92,25 +96,54 @@ const Home = () => {
     }
   };
 
+  const fetchProposalStatuses = async (posts) => {
+    const senderId = localStorage.getItem("id");
+    if (!senderId) return;
+
+    const postIds = posts.map((post) => post.id);
+    const { data, error } = await supabase
+      .from("proposals")
+      .select("post_id, status")
+      .in("post_id", postIds)
+      .eq("sender_id", senderId);
+
+    if (error) {
+      console.error("Erreur lors de la récupération des statuts :", error.message);
+      return;
+    }
+
+    const statuses = {};
+    data.forEach((proposal) => {
+      statuses[proposal.post_id] = proposal.status;
+    });
+
+    setProposalStatuses(statuses);
+  };
+
   const sendProposal = async (post) => {
     const senderId = localStorage.getItem("id");
     if (!senderId) {
       alert("Vous devez être connecté pour envoyer une proposition.");
       return;
     }
-  
-    const { error } = await supabase.from("proposals").insert([
+
+    const { data, error } = await supabase.from("proposals").insert([
       {
         post_id: post.id,
         sender_id: senderId,
-        owner_id: post.user_id, // Propriétaire du post
+        owner_id: post.user_id,
+        status: "pending",
       },
-    ]);
-  
+    ]).select("status").single();
+
     if (error) {
       console.error("Erreur lors de l'envoi de la proposition :", error.message);
     } else {
       alert("Proposition envoyée avec succès !");
+      setProposalStatuses((prev) => ({
+        ...prev,
+        [post.id]: data.status,
+      }));
       sendNotification(post.user_id, post.id);
     }
   };
@@ -127,47 +160,71 @@ const Home = () => {
       console.error("Erreur lors de l'envoi de la notification :", error.message);
     }
   };
-  
+
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  const handleImageClick = (image) => {
+    setSelectedImage(image);
+    setIsImageOpen(true);
+  };  
+
+  // Fonction pour fermer l'image si on clique en dehors
+  const handleCloseImage = (e) => {
+    if (e.target.classList.contains("image-popup")) {
+      setIsImageOpen(false);
+    }
+  };
 
   return (
     <div className="Home">
-      <div className="list">
         {/* Buttons for filtering "Vendre" & "Acheter" */}
-        <div className="lists-buttons">
-          <button
-            className={activeFilter === "vendre" ? "active" : ""}
-            onClick={() => setActiveFilter("vendre")}
-          >
-            Vendre
-          </button>
-          <button
-            className={activeFilter === "acheter" ? "active" : ""}
-            onClick={() => setActiveFilter("acheter")}
-          >
-            Acheter
-          </button>
+        <div className="container">
+          <div className="lists-buttons">
+            <button
+              className={activeFilter === "vendre" ? "active" : ""}
+              onClick={() => setActiveFilter("vendre")}
+            >
+              <i className="bi bi-arrow-down"></i>
+              Import
+            </button>
+            <button
+              className={activeFilter === "acheter" ? "active" : ""}
+              onClick={() => setActiveFilter("acheter")}
+            >
+              <i className="bi bi-arrow-up"></i>
+              Export
+            </button>
+          </div>
+          {/* Filter Options */}
+          <div className="list-header">
+            <select onChange={(e) => setSelectedCountry(e.target.value)} value={selectedCountry}>
+              <option value="">Pays</option>
+              <option value="Algérie">Algérie</option>
+              <option value="France">France</option>
+              <option value="Chine">Chine</option>
+              <option value="Italie">Italie</option>
+              <option value="Tunisie">Tunisie</option>
+              <option value="Espagne">Espagne</option>
+              <option value="Ecuador">Ecuador</option>
+            </select>
+            <input
+              type="search"
+              placeholder="Recherche..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-        {/* Filter Options */}
-        <div className="list-header">
-          <select onChange={(e) => setSelectedCountry(e.target.value)} value={selectedCountry}>
-            <option value="">Pays</option>
-            <option value="algérie">Algérie</option>
-            <option value="france">France</option>
-            <option value="chine">Chine</option>
-          </select>
-          <input
-            type="search"
-            placeholder="Recherche..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      <div className="list">
 
         {/* Posts List */}
         {filteredPosts.length > 0 ? (
           filteredPosts.map((post, index) => (
             <div key={index} className="post">
-              <img src={post.image} alt={post.title} />
+              <img onClick={() => handleImageClick(post.image)} src={post.image} alt={post.title} />
               <div className="time">
                 <h1>{post.product}</h1>
                 <p>{calculateTimeElapsed(post.created_at)}</p>
@@ -178,15 +235,26 @@ const Home = () => {
               <p>
                 De: <span>{post.from}</span>
               </p>
-              <button className="proposal-button" onClick={() => sendProposal(post)}>
-                Envoyer une proposition
-              </button>
+              {proposalStatuses[post.id] ? (
+                <p style={{ color: "white" }} className={`proposal-status ${proposalStatuses[post.id]}`}>
+                  {proposalStatuses[post.id] === "pending" ? "En attente" : capitalizeFirstLetter(proposalStatuses[post.id])}
+                </p>
+              ) : (
+                <button className="proposal-button" onClick={() => sendProposal(post)}>
+                  Envoyer une proposition
+                </button>
+              )}
             </div>
           ))
         ) : (
           <p className="no-results">Aucun résultat trouvé</p>
         )}
       </div>
+        {isImageOpen && selectedImage && (
+          <div className="image-popup" onClick={handleCloseImage}>
+            <img src={selectedImage} alt="Agrandie" className="popup-image" />
+          </div>
+        )}
       <NavBar />
     </div>
   );

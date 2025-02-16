@@ -124,23 +124,42 @@ const NavBar = () => {
     <>
       <nav className="navbar">
         <Link
-            to="/exportator"
-            className={`nav-item ${location.pathname === "/exportator" ? "active" : ""}`}
+            to="/main"
+            className={`nav-item ${location.pathname === "/main" ? "active" : ""}`}
         >
-            <i className={`bi ${location.pathname === "/exportator" ? "bi-house-door-fill" : "bi-house"} nav-icon`}></i>
+            <i className={`bi ${location.pathname === "/main" ? "bi-house-door-fill" : "bi-house"} nav-icon`}></i>
             <span className="nav-text">Home</span>
         </Link>
 
-        <button className="nav-item add-post" onClick={() => setShowModal(true)}>
-            <i className="bi bi-plus-square nav-icon"></i>
-            <span className="nav-text">Add Post</span>
-        </button>
+        <Link
+            to="/main/accepter"
+            className={`nav-item ${location.pathname === "/main/accepter" ? "active" : ""}`}
+            style={{ marginRight: "20px" }}
+        >
+            <i className={`bi ${location.pathname === "/main/accepter" ? "bi-check-circle-fill" : "bi-check-circle"} nav-icon`}></i>
+            <span className="nav-text">Accepté</span>
+        </Link>
+
+        <div className="add-post-b">
+            <button className="add-post" onClick={() => setShowModal(true)}>
+                <i className="bi bi-plus nav-icon"></i>
+            </button>
+        </div>
 
         <Link
-            to="/exportator/profile"
-            className={`nav-item ${location.pathname === "/exportator/profile" ? "active" : ""}`}
+            to="/main/transiteurs"
+            className={`nav-item ${location.pathname === "/main/transiteurs" ? "active" : ""}`}
+            style={{ marginLeft: "20px" }}
         >
-            <i className={`bi ${location.pathname === "/exportator/profile" ? "bi-person-fill" : "bi-person"} nav-icon`}></i>
+            <i className={`bi ${location.pathname === "/main/transiteurs" ? "bi-train-freight-front-fill" : "bi-train-freight-front"} nav-icon`}></i>
+            <span className="nav-text">Fret</span>
+        </Link>
+
+        <Link
+            to="/main/profile"
+            className={`nav-item ${location.pathname === "/main/profile" ? "active" : ""}`}
+        >
+            <i className={`bi ${location.pathname === "/main/profile" ? "bi-person-fill" : "bi-person"} nav-icon`}></i>
             <span className="nav-text">Profile</span>
         </Link>
       </nav>

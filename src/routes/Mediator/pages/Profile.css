@@ -1,5 +1,6 @@
 .settings-page {
     background-color: #ffffff;
+    font-family: 'Noto Kufi Arabic', sans-serif;
   }
   
   .settings-container {
@@ -10,7 +11,6 @@
   
   .settings-card {
     overflow: hidden;
-    padding-bottom: 100px;
   }
   
   .settings-header {

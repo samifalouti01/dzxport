@@ -57,7 +57,7 @@ const Header = () => {
   
     // Ajoute un petit délai pour éviter un conflit avec le re-render de React
     setTimeout(() => {
-      navigate(`/exportator/notification/${postId}`);
+      navigate(`/main/notification/${postId}`);
     }, 300); // 300ms pour laisser le panneau se fermer proprement
   };  
 

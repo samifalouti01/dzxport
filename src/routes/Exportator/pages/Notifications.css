@@ -71,7 +71,6 @@
 .user-info {
     border-radius: 8px;
     padding: 16px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* User info title */
@@ -137,6 +136,47 @@
     cursor: pointer;
     transition: transform 0.2s;
   }
+
+  .btns {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+  }
   
+  .accept-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    color: white;
+    background-color: #49509E;
+    transition: color 0.3s ease;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px;
+    padding: 10px 20px;
+  }
+
+  .refuse-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #49509E;
+    border-radius: 100px;
+    cursor: pointer;
+    color: #49509E;
+    transition: color 0.3s ease;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px;
+    padding: 10px 20px;
+  }
  
-  
+.status-message {
+    color: #49509E;
+    padding: 20px;
+    font-weight: 600;
+}

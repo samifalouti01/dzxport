@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const LoginSignup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Exportator'); // Default role
+  const [role, setRole] = useState('ExIm'); // Default role
   const [isSignUp, setIsSignUp] = useState(false);
   const [notification, setNotification] = useState('');
   const navigate = useNavigate();
@@ -40,10 +40,10 @@ const LoginSignup = () => {
           showNotification("Signup successful! Redirecting...");
 
           // Navigate to the role-specific page
-          if (role === "Exportator") {
-            navigate("/exportator");
-          } else if (role === "Mediator") {
-            navigate("/mediator");
+          if (role === "ExIm") {
+            navigate("/main");
+          } else if (role === "Transiteur") {
+            navigate("/transit");
           }
         }
       } else {
@@ -63,10 +63,10 @@ const LoginSignup = () => {
           localStorage.setItem("id", data.id);
 
           // Navigate based on role
-          if (data.role === "Exportator") {
-            navigate("/exportator");
-          } else if (data.role === "Mediator") {
-            navigate("/mediator");
+          if (data.role === "ExIm") {
+            navigate("/main");
+          } else if (data.role === "Transiteur") {
+            navigate("/transit");
           } else {
             showNotification("Invalid role. Please contact support.");
           }
@@ -96,8 +96,8 @@ const LoginSignup = () => {
       />
       {isSignUp && (
         <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="Exportator">Exportator</option>
-          <option value="Mediator">Mediator</option>
+          <option value="ExIm">Acheteur / Vendeur</option>
+          <option value="Transiteur">Transiteur</option>
         </select>
       )}
       <button onClick={handleSubmit}>{isSignUp ? 'Sign Up' : 'Login'}</button>

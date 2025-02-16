@@ -73,7 +73,7 @@ const Profile = () => {
       const fetchUserData = async () => {
         const { data, error } = await supabase
           .from("users")
-          .select("email, phone, password, username")
+          .select("email, phone, password, username, country")
           .eq("id", userId)
           .single();
 
@@ -165,6 +165,11 @@ const Profile = () => {
               label="Phone"
               value={userData.phone}
               onSave={(value) => handleUpdate("phone", value)}
+            />
+            <SettingsField
+              label="Country"
+              value={userData.country}
+              onSave={(value) => handleUpdate("country", value)}
             />
             <SettingsField
               label="Password"

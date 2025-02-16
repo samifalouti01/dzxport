@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { FiLogOut } from "react-icons/fi";
 import NavBar from "../components/NavBar";
 import { Edit2, Save, X } from "lucide-react";
 import { supabase } from "../../../utils/supabaseClient";
 import { useNavigate } from "react-router-dom";
+import "./Profile.css";
 
 const SettingsField = ({ label, value, onSave, type = "text", placeholder = "" }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -63,6 +65,7 @@ const Profile = () => {
   });
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const userId = localStorage.getItem("id");
@@ -112,8 +115,34 @@ const Profile = () => {
     }
   };
 
+  const handleLogout = async () => {
+    setLoading(true);
+    try {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        navigate("/");
+    } catch (error) {
+        console.error("Logout failed", error);
+    } finally {
+        setLoading(false);
+    }
+};
+
   return (
     <div className="settings-page">
+      <button
+            className="logout-buttons"
+            onClick={handleLogout}
+            disabled={loading}
+            aria-busy={loading}
+        >
+            {loading ? (
+                <div className="spinner" aria-hidden="true"></div>
+            ) : (
+                <>
+                    <FiLogOut className="logout-icon" /> Logout
+                </>
+            )}
+      </button>
       <div className="settings-container">
         <div className="settings-card">
           <div className="settings-header">

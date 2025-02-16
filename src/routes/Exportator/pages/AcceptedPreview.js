@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../../utils/supabaseClient";
 import "./Notifications.css";
 
-const Notifications = () => {
+const AcceptedPreview = () => {
   const { postId } = useParams(); 
   const [post, setPost] = useState(null);
   const [user, setUser] = useState(null);
@@ -17,6 +17,7 @@ const Notifications = () => {
       if (!postId) return;
   
       try {
+        // Fetch post data
         const { data: postData, error: postError } = await supabase
           .from("posts")
           .select("id, created_at, user_id, product, image, from, quantity, unity")
@@ -34,49 +35,58 @@ const Notifications = () => {
         let senderData = null;
         let ownerData = null;
   
-        // Récupérer l'expéditeur (sender_id) depuis la table proposals
+        // Fetch proposal data (if exists)
         const { data: proposalData, error: proposalError } = await supabase
           .from("proposals")
-          .select("sender_id")
+          .select("owner_id")
           .eq("post_id", postId)
-          .single();
+          .maybeSingle();
+  
+        console.log("Proposal Data:", proposalData);
+        console.log("Proposal Error:", proposalError);
   
         if (proposalError) {
-          console.error("Erreur lors de la récupération du sender_id :", proposalError.message);
-        } else if (proposalData?.sender_id) {
-          const { data, error } = await supabase
+          console.error("Erreur lors de la récupération du owner_id :", proposalError.message);
+        } else if (proposalData && proposalData.owner_id) {
+          const { data: userData, error: userError } = await supabase
             .from("users")
             .select("username, phone, email, role, country")
-            .eq("id", proposalData.sender_id)
+            .eq("id", proposalData.owner_id)
             .single();
   
-          if (error) {
-            console.error("Erreur lors de la récupération de l'expéditeur :", error.message);
+          console.log("User Data:", userData);
+          console.log("User Error:", userError);
+  
+          if (userError) {
+            console.error("Erreur lors de la récupération de l'expéditeur :", userError.message);
           } else {
-            senderData = data;
+            senderData = userData;
           }
         }
   
-        // Récupérer le propriétaire du post (user_id)
+        // Fetch owner data (if post has a user_id)
         if (postData?.user_id) {
-          const { data, error } = await supabase
+          const { data: ownerUserData, error: ownerError } = await supabase
             .from("users")
             .select("username, phone, email, role, country")
             .eq("id", postData.user_id)
             .single();
   
-          if (error) {
-            console.error("Erreur lors de la récupération du propriétaire du post :", error.message);
+          console.log("Owner User Data:", ownerUserData);
+          console.log("Owner User Error:", ownerError);
+  
+          if (ownerError) {
+            console.error("Erreur lors de la récupération du propriétaire du post :", ownerError.message);
           } else {
-            ownerData = data;
+            ownerData = ownerUserData;
           }
         }
   
-        // Afficher uniquement les informations de l'expéditeur
+        // Set user state based on sender or owner data
         if (senderData) {
           setUser(senderData);
         } else if (ownerData) {
-          setUser(ownerData); // Si pas de sender, afficher le propriétaire du post
+          setUser(ownerData);
         }
       } catch (err) {
         console.error("Erreur générale :", err);
@@ -86,7 +96,7 @@ const Notifications = () => {
     };
   
     fetchPostAndUsers();
-  }, [postId]);  
+  }, [postId]);
 
   useEffect(() => {
     const fetchProposalStatus = async () => {
@@ -132,29 +142,6 @@ const Notifications = () => {
     }
   };
 
-  const handleStatusUpdate = async (newStatus) => {
-    if (!postId) return;
-  
-    const { error } = await supabase
-      .from("proposals")
-      .update({ status: newStatus })
-      .eq("post_id", postId);
-  
-    if (error) {
-      console.error("Erreur lors de la mise à jour du statut :", error.message);
-    } else {
-      console.log("Status updated to:", newStatus);
-      
-      // Force React to update the UI immediately
-      setProposalStatus(newStatus);
-    }
-  };
-  
-  const capitalizeFirstLetter = (string) => {
-    if (!string) return '';
-    return string.charAt(0).toUpperCase() + string.slice(1);
-  };
-
   return (
     <div className="alert-container">
       <button onClick={handleBack} className="backButton">
@@ -179,27 +166,13 @@ const Notifications = () => {
 
       {user && (
         <div className="user-info">
-          <h3>Informations de l'utilisateur</h3>
+          <h3>Informations de le propriétaire</h3>
           <p><strong>Nom d'utilisateur :</strong> {user.username || "Inconnu"}</p>
           <p><strong>Téléphone :</strong> {user.phone || "Non spécifié"}</p>
           <p><strong>Email :</strong> {user.email || "Non spécifié"}</p>
           <p><strong>Country :</strong> {user.country || "Non spécifié"}</p>
         </div>
       )}
-
-        {console.log("proposalStatus before rendering:", proposalStatus)}
-        {proposalStatus === "pending" ? (
-        <div className="btns">
-            <button className="refuse-button" onClick={() => handleStatusUpdate("refused")}>
-            <i className="bi bi-x"></i> Refuser
-            </button>
-            <button className="accept-button" onClick={() => handleStatusUpdate("accepted")}>
-            <i className="bi bi-check"></i> Accorder
-            </button>
-        </div>
-        ) : (
-        <p className="status-message">{capitalizeFirstLetter(proposalStatus)}</p>
-        )}
 
       {/* Affichage de la pop-up si l'image est ouverte */}
       {isImageOpen && (
@@ -211,4 +184,4 @@ const Notifications = () => {
   );
 };
 
-export default Notifications;
+export default AcceptedPreview;
