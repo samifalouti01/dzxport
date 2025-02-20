@@ -9,6 +9,8 @@ import Transiteurs from './routes/Exportator/pages/Transiteurs';
 import Accepter from './routes/Exportator/pages/Accepter';
 import Notifications from './routes/Exportator/pages/Notifications';
 import AcceptedPreview from './routes/Exportator/pages/AcceptedPreview';
+import Posts from './routes/Exportator/pages/Posts';
+import EditPost from './routes/Exportator/pages/EditPost';
 import MainMediator from './routes/Mediator/pages/Main';
 import HomeM from './routes/Mediator/pages/Home';
 import ProfileM from './routes/Mediator/pages/Profile';
@@ -27,6 +29,8 @@ function App() {
           <Route path="accepter" element={<Accepter />} /> 
           <Route path="profile" element={<Profile />} /> 
           <Route path="addpost" element={<AddPost />} />
+          <Route path="posts" element={<Posts />} />
+          <Route path="edit-post/:postId" element={<EditPost />} />
           <Route path="notification/:postId" element={<Notifications />} />
           <Route path="accepted-preview/:postId" element={<AcceptedPreview />} />
         </Route>

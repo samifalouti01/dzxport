@@ -188,14 +188,14 @@ const Home = () => {
               onClick={() => setActiveFilter("vendre")}
             >
               <i className="bi bi-arrow-down"></i>
-              Import
+              Pour Import
             </button>
             <button
               className={activeFilter === "acheter" ? "active" : ""}
               onClick={() => setActiveFilter("acheter")}
             >
               <i className="bi bi-arrow-up"></i>
-              Export
+              Pour Export
             </button>
           </div>
           {/* Filter Options */}
