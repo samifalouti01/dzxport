@@ -71,6 +71,7 @@
 .user-info {
     border-radius: 8px;
     padding: 16px;
+    margin-bottom: 100px;
 }
 
 /* User info title */
@@ -180,3 +181,39 @@
     padding: 20px;
     font-weight: 600;
 }
+
+.ship-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 5px 10px 10px 10px;
+    background-color: #f7f7f7;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.shipping-offer-btn {
+    background-color: #49509E;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+    width: 100%;
+  }
+  
+  .shipping-offer-btn:hover {
+    background-color: #36006f;
+  }
+
+  .shipping-offer-btn:disabled {
+    background-color: #ccc !important;
+    cursor: not-allowed !important;
+  }
+  

@@ -194,7 +194,7 @@ const Posts = () => {
     return (
         <div>
             <div className="list">
-                <h1>Votre posts</h1>
+                <h1>Vos publications</h1>
                 {filteredPosts.length > 0 ? (
                     filteredPosts.map((post, index) => (
                     <div key={index} className="post">

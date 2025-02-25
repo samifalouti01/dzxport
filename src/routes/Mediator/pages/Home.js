@@ -5,141 +5,116 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import NavBar from "../components/NavBar";
 
 const Home = () => {
-  const [posts, setPosts] = useState([]);
-  const [containers, setContainers] = useState([]);
-  const [selectedContainer, setSelectedContainer] = useState("");
-
-  const fetchPosts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setPosts(data);
-    } catch (error) {
-      console.error("Error fetching posts:", error.message);
-    }
-  };
-
-  const fetchContainers = async () => {
-    try {
-      const userId = localStorage.getItem("id");
-      const { data, error } = await supabase
-        .from("containers")
-        .select("*")
-        .eq("user_id", userId);
-
-      if (error) throw error;
-      setContainers(data);
-    } catch (error) {
-      console.error("Error fetching containers:", error.message);
-    }
-  };
-
-  const handleAddToContainer = async (post) => {
-    if (!selectedContainer) {
-      alert("Please select a container.");
-      return;
-    }
-  
-    const container = containers.find(
-      (container) => container.id === Number(selectedContainer)
-    );
-  
-    if (!container) {
-      console.error("Container not found.");
-      return;
-    }
-  
-    // Calculate the total quantity of items in the container
-    const totalPostQuantity = container.post_quantity
-      ? container.post_quantity
-          .split(",")
-          .reduce((acc, val) => acc + Number(val), 0)
-      : 0;
-  
-    // Check if adding the new post exceeds the container's capacity
-    if (totalPostQuantity + Number(post.quantity) > Number(container.quantity)) {
-      alert("This container is full. Cannot add more posts.");
-      return;
-    }
-  
-    try {
-      // Append new post data to the existing container data
-      const updatedPostId = container.post_id
-        ? `${container.post_id},${post.id}`
-        : `${post.id}`;
-      const updatedPostProduct = container.post_product
-        ? `${container.post_product},${post.product}`
-        : `${post.product}`;
-      const updatedPostQuantity = container.post_quantity
-        ? `${container.post_quantity},${post.quantity}`
-        : `${post.quantity}`;
-  
-      // Update the container with the concatenated values
-      const { error } = await supabase
-        .from("containers")
-        .update({
-          post_id: updatedPostId,
-          post_product: updatedPostProduct,
-          post_quantity: updatedPostQuantity,
-        })
-        .eq("id", container.id);
-  
-      if (error) throw error;
-  
-      // Update the local containers state
-      const updatedContainers = containers.map((c) =>
-        c.id === container.id
-          ? {
-              ...c,
-              post_id: updatedPostId,
-              post_product: updatedPostProduct,
-              post_quantity: updatedPostQuantity,
-            }
-          : c
-      );
-      setContainers(updatedContainers);
-  
-      alert("Post added to container successfully!");
-    } catch (error) {
-      console.error("Error adding post to container:", error.message);
-    }
-  };  
+  const [shipPosts, setShipPosts] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isImageOpen, setIsImageOpen] = useState(false);
+  const [proposalStatuses, setProposalStatuses] = useState({});
 
   useEffect(() => {
-    fetchPosts();
-    fetchContainers();
+    const fetchShipPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("ship_posts")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+
+        setShipPosts(data || []);
+      } catch (error) {
+        console.error("Error fetching shipping posts:", error.message);
+      }
+    };
+
+    fetchShipPosts();
   }, []);
+
+  const capitalizeFirstLetter = (string) => {
+    if (!string) return "";
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
+
+  const handleImageClick = (image) => {
+    setSelectedImage(image);
+    setIsImageOpen(true);
+  };
+
+  const handleCloseImage = (e) => {
+    if (e.target.classList.contains("image-popup")) {
+      setIsImageOpen(false);
+    }
+  };
+
+  const calculateTimeElapsed = (timestamp) => {
+    const now = new Date();
+    const postDate = new Date(timestamp);
+    const timeDiff = now - postDate;
+
+    const minutes = Math.floor(timeDiff / (1000 * 60));
+    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const months = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 30));
+    const years = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 365));
+
+    if (minutes < 60) {
+      return `il y a ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+    } else if (hours < 24) {
+      return `il y a ${hours} heure${hours !== 1 ? "s" : ""}`;
+    } else if (days < 30) {
+      return `il y a ${days} jour${days !== 1 ? "s" : ""}`;
+    } else if (months < 12) {
+      return `il y a ${months} mois`;
+    } else {
+      return `il y a ${years} an${years !== 1 ? "s" : ""}`;
+    }
+  };
+
+  const sendProposal = (post) => {
+    console.log("Sending proposal for:", post);
+    // Implémenter la logique d'envoi d'une proposition
+  };
 
   return (
     <div className="Home">
       <div className="list">
-        {posts.map((post) => (
-          <div key={post.id} className="post">
-            <h1>{post.product}</h1>
-            <p>Quantity: <span>{post.quantity} Kg</span></p>
-            <p>From: <span>{post.from}</span> To: <span>{post.to}</span></p>
-            <select
-              onChange={(e) => setSelectedContainer(e.target.value)}
-              value={selectedContainer}
-              required
-            >
-              <option value="">Select Container</option>
-              {containers.map((container) => (
-                <option key={container.id} value={container.id}>
-                  {container.name} (Capacity: {container.quantity} Kg)
-                </option>
-              ))}
-            </select>
-            <button onClick={() => handleAddToContainer(post)}>
-              Add to Container
-            </button>
-          </div>
-        ))}
+        {shipPosts.length > 0 ? (
+          shipPosts.map((post, index) => (
+            <div key={index} className="post">
+              {post.image && (
+                <img onClick={() => handleImageClick(post.image)} src={post.image} alt={post.product} />
+              )}
+              <div className="time">
+                <h1>{post.product}</h1>
+                <p>{calculateTimeElapsed(post.created_at)}</p>
+              </div>
+              <p>
+                Quantité: <span>{post.quantity} {post.unity}</span>
+              </p>
+              <p>
+                De: <span>{post.from} à: {post.to || "Non spécifié"}</span>
+              </p>
+              {proposalStatuses[post.id] ? (
+                <p style={{ color: "white" }} className={`proposal-status ${proposalStatuses[post.id]}`}>
+                  {proposalStatuses[post.id] === "pending" ? "En attente" : capitalizeFirstLetter(proposalStatuses[post.id])}
+                </p>
+              ) : (
+                <button className="proposal-button" onClick={() => sendProposal(post)}>
+                  Envoyer une proposition
+                </button>
+              )}
+            </div>
+          ))
+        ) : (
+          <p className="no-results">Aucun résultat trouvé</p>
+        )}
       </div>
+
+      {isImageOpen && selectedImage && (
+        <div className="image-popup" onClick={handleCloseImage}>
+          <img src={selectedImage} alt="Agrandie" className="popup-image" />
+        </div>
+      )}
+
       <NavBar />
     </div>
   );

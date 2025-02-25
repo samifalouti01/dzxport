@@ -4,180 +4,234 @@ import { supabase } from "../../../utils/supabaseClient";
 import "./Notifications.css";
 
 const AcceptedPreview = () => {
-  const { postId } = useParams(); 
-  const [post, setPost] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isImageOpen, setIsImageOpen] = useState(false); // État pour afficher l'image
+  const { postId } = useParams();
   const navigate = useNavigate();
-  const [proposalStatus, setProposalStatus] = useState(null);
+  
+  const [state, setState] = useState({
+    post: null,
+    user: null,
+    loading: true,
+    isImageOpen: false,
+    proposalStatus: null,
+    currentUserCountry: null,
+    senderId: null,
+    shippingSent: false
+  });
 
+  // Helper function to update state
+  const updateState = (updates) => {
+    setState(prev => ({ ...prev, ...updates }));
+  };
+
+  // Fetch post and users data
   useEffect(() => {
     const fetchPostAndUsers = async () => {
-      if (!postId) return;
-  
+      if (!postId) {
+        updateState({ loading: false });
+        return;
+      }
+
       try {
         // Fetch post data
         const { data: postData, error: postError } = await supabase
           .from("posts")
-          .select("id, created_at, user_id, product, image, from, quantity, unity")
+          .select("id, created_at, user_id, product, image, from, quantity, unity, lists")
           .eq("id", postId)
           .single();
-  
+
         if (postError) {
-          console.error("Erreur lors de la récupération du post :", postError.message);
-          setLoading(false);
+          console.error("Error fetching post:", postError.message);
+          updateState({ loading: false });
           return;
         }
-  
-        setPost(postData);
-  
-        let senderData = null;
-        let ownerData = null;
-  
-        // Fetch proposal data (if exists)
+
+        // Fetch proposal data
         const { data: proposalData, error: proposalError } = await supabase
           .from("proposals")
-          .select("owner_id")
+          .select("owner_id, status")
           .eq("post_id", postId)
           .maybeSingle();
-  
-        console.log("Proposal Data:", proposalData);
-        console.log("Proposal Error:", proposalError);
-  
+
         if (proposalError) {
-          console.error("Erreur lors de la récupération du owner_id :", proposalError.message);
-        } else if (proposalData && proposalData.owner_id) {
-          const { data: userData, error: userError } = await supabase
+          console.error("Error fetching proposal:", proposalError.message);
+        }
+
+        // Fetch user data based on proposal or post
+        const userId = proposalData?.owner_id || postData?.user_id;
+        let userData = null;
+
+        if (userId) {
+          const { data: userInfo, error: userError } = await supabase
             .from("users")
-            .select("username, phone, email, role, country")
-            .eq("id", proposalData.owner_id)
+            .select("username, phone, email, role")
+            .eq("id", userId)
             .single();
-  
-          console.log("User Data:", userData);
-          console.log("User Error:", userError);
-  
+
           if (userError) {
-            console.error("Erreur lors de la récupération de l'expéditeur :", userError.message);
+            console.error("Error fetching user:", userError.message);
           } else {
-            senderData = userData;
+            userData = userInfo;
           }
         }
-  
-        // Fetch owner data (if post has a user_id)
-        if (postData?.user_id) {
-          const { data: ownerUserData, error: ownerError } = await supabase
-            .from("users")
-            .select("username, phone, email, role, country")
-            .eq("id", postData.user_id)
-            .single();
-  
-          console.log("Owner User Data:", ownerUserData);
-          console.log("Owner User Error:", ownerError);
-  
-          if (ownerError) {
-            console.error("Erreur lors de la récupération du propriétaire du post :", ownerError.message);
-          } else {
-            ownerData = ownerUserData;
-          }
-        }
-  
-        // Set user state based on sender or owner data
-        if (senderData) {
-          setUser(senderData);
-        } else if (ownerData) {
-          setUser(ownerData);
-        }
+
+        updateState({
+          post: postData,
+          user: userData,
+          proposalStatus: proposalData?.status,
+          loading: false
+        });
+
       } catch (err) {
-        console.error("Erreur générale :", err);
-      } finally {
-        setLoading(false);
+        console.error("General error:", err);
+        updateState({ loading: false });
       }
     };
-  
+
     fetchPostAndUsers();
   }, [postId]);
 
+  // Fetch current user's country
   useEffect(() => {
-    const fetchProposalStatus = async () => {
-      if (!postId) return;
-  
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("status")
-        .eq("post_id", postId)
+    const fetchCurrentUser = async () => {
+      const userId = localStorage.getItem("id");
+      if (!userId) return;
+
+      const { data: userData, error } = await supabase
+        .from("users")
+        .select("id, country")
+        .eq("id", userId)
         .single();
+
+      if (error) {
+        console.error("Error fetching user country:", error.message);
+      } else {
+        updateState({ 
+          currentUserCountry: userData.country,
+          senderId: userData.id 
+        });
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+  // Fetch shipping status
+  useEffect(() => {
+    const fetchShippingStatus = async () => {
+      if (!postId || !state.senderId) return;
+  
+      const { data: shipData, error } = await supabase
+        .from("ship_posts")
+        .select("id")
+        .eq("post_id", postId)
+        .eq("sender_id", state.senderId)
+        .maybeSingle();
   
       if (error) {
-        console.error("Erreur lors de la récupération du statut :", error.message);
+        console.error("Error fetching shipping status:", error.message);
       } else {
-        setProposalStatus(data?.status);
+        updateState({ shippingSent: !!shipData });
       }
     };
   
-    fetchProposalStatus();
-  }, [postId]);
-
-  if (loading) {
-    return <p className="loading">Chargement...</p>;
-  }
-
-  if (!post) {
-    return <p className="error">Aucun post trouvé</p>;
-  }
+    fetchShippingStatus();
+  }, [postId, state.senderId]);
 
   const handleBack = () => {
-    navigate(-1); // Retourner à la page précédente
+    navigate(-1);
   };
 
-  // Fonction pour afficher l'image en grand
   const handleImageClick = () => {
-    setIsImageOpen(true);
+    updateState({ isImageOpen: true });
   };
 
-  // Fonction pour fermer l'image si on clique en dehors
   const handleCloseImage = (e) => {
     if (e.target.classList.contains("image-popup")) {
-      setIsImageOpen(false);
+      updateState({ isImageOpen: false });
     }
   };
+
+  const createShippingOffer = async () => {
+    if (!state.post || !state.currentUserCountry) return;
+
+    const { error } = await supabase
+      .from("ship_posts")
+      .insert([{
+        post_id: state.post.id,
+        user_id: state.post.user_id,
+        product: state.post.product,
+        from: state.post.from,
+        to: state.currentUserCountry,
+        quantity: state.post.quantity,
+        unity: state.post.unity,
+        image: state.post.image,
+        sender_id: state.senderId
+      }]);
+
+    if (error) {
+      console.error("Error creating shipping offer:", error.message);
+    } else {
+      alert("Shipping offer created successfully!");
+      updateState({ shippingSent: true });
+    }
+  };
+
+  if (state.loading) {
+    return <p className="loading">Loading...</p>;
+  }
+
+  if (!state.post) {
+    return <p className="error">No post found</p>;
+  }
 
   return (
     <div className="alert-container">
       <button onClick={handleBack} className="backButton">
-        <i className="bi bi-chevron-left"></i> {post.product || "Inconnu"}
+        <i className="bi bi-chevron-left"></i> {state.post.product || "Unknown"}
       </button>
+      
       <div className="alert-card">
-        {post.image && (
+        {state.post.image && (
           <img
-            src={post.image}
-            alt={post.product}
+            src={state.post.image}
+            alt={state.post.product}
             className="alert-image"
-            onClick={handleImageClick} // Ouvre l'image en grand
+            onClick={handleImageClick}
           />
         )}
+        
         <div className="alert-info">
-          <h3 className="alert-title">Produit : {post.product || "Inconnu"}</h3>
-          <p className="alert-detail">Quantité : <span>{post.quantity || "Non spécifié"} {post.unity}</span></p>
-          <p className="alert-detail">De : <span>{post.from || "Anonyme"}</span></p>
-          <p className="alert-detail">Posté le : <span>{new Date(post.created_at).toLocaleString()}</span></p>
+          <h3 className="alert-title">Product: {state.post.product || "Unknown"}</h3>
+          <p className="alert-detail">Quantity: <span>{state.post.quantity || "Not specified"} {state.post.unity}</span></p>
+          <p className="alert-detail">From: <span>{state.post.from || "Anonymous"}</span></p>
+          <p className="alert-detail">Posted on: <span>{new Date(state.post.created_at).toLocaleString()}</span></p>
         </div>
       </div>
 
-      {user && (
+      {state.user && (
         <div className="user-info">
-          <h3>Informations de le propriétaire</h3>
-          <p><strong>Nom d'utilisateur :</strong> {user.username || "Inconnu"}</p>
-          <p><strong>Téléphone :</strong> {user.phone || "Non spécifié"}</p>
-          <p><strong>Email :</strong> {user.email || "Non spécifié"}</p>
-          <p><strong>Country :</strong> {user.country || "Non spécifié"}</p>
+          <h3>Owner Information</h3>
+          <p><strong>Username:</strong> {state.user.username || "Unknown"}</p>
+          <p><strong>Phone:</strong> {state.user.phone || "Not specified"}</p>
+          <p><strong>Email:</strong> {state.user.email || "Not specified"}</p>
         </div>
       )}
 
-      {/* Affichage de la pop-up si l'image est ouverte */}
-      {isImageOpen && (
+      {state.post.lists === "acheter" && (
+        <div className="ship-container">
+          <button
+            className="shipping-offer-btn"
+            onClick={createShippingOffer}
+            disabled={state.shippingSent}
+          >
+            {state.shippingSent ? "Sent" : "Create Shipping Offer"}
+          </button>
+        </div>
+      )}
+
+      {state.isImageOpen && (
         <div className="image-popup" onClick={handleCloseImage}>
-          <img src={post.image} alt="Agrandie" className="popup-image" />
+          <img src={state.post.image} alt="Enlarged" className="popup-image" />
         </div>
       )}
     </div>
