@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../utils/supabaseClient";
 
@@ -6,82 +6,133 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const userId = localStorage.getItem("id");
 
-  useEffect(() => {
-    if (!userId) return;
+  const fetchNotifications = useCallback(async () => {
+    if (!userId) {
+      setError("No user ID found in localStorage");
+      setLoading(false);
+      return;
+    }
 
-    const fetchNotifications = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching notifications for user:", userId);
+      
       const { data, error } = await supabase
-        .from("notifications")
+        .from("transit_notifications")
         .select(`
           id,
           created_at,
           seen,
-          post_id,
-          posts!notifications_post_id_fkey(id, product, image, from, quantity)
+          transit_id,
+          sender_id,
+          transits (
+            id,
+            title,
+            price,
+            "to",
+            "from"
+          ),
+          users:sender_id (
+            id,
+            username
+          )
         `)
         .eq("receiver_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Erreur lors de la récupération des notifications :", error.message);
-      } else {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.seen).length);
-      }
-    };
+      if (error) throw error;
 
-    fetchNotifications();
+      console.log("Raw data from Supabase:", data);
+
+      if (!data || data.length === 0) {
+        console.log("No notifications found for this user");
+      }
+
+      setNotifications(data || []);
+      setUnreadCount(data?.filter((n) => !n.seen).length || 0);
+      setError(null);
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setError(`Failed to fetch notifications: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }, [userId]);
 
-  const togglePanel = () => {
-    setIsPanelOpen(!isPanelOpen);
+  useEffect(() => {
+    fetchNotifications();
+
+    const subscription = supabase
+      .channel('transit_notifications')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'transit_notifications', 
+          filter: `receiver_id=eq.${userId}` 
+        },
+        (payload) => {
+          console.log("Realtime update received:", payload);
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchNotifications, userId]);
+
+  const togglePanel = () => setIsPanelOpen(prev => !prev);
+
+  const handleNotificationClick = async (transitId) => {
+    if (!transitId) return;
+
+    try {
+      const { error } = await supabase
+        .from("transit_notifications")
+        .update({ seen: true })
+        .eq("transit_id", transitId)
+        .eq("receiver_id", userId);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(n => 
+          n.transit_id === transitId ? { ...n, seen: true } : n
+        )
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      setIsPanelOpen(false);
+
+      setTimeout(() => {
+        navigate(`/transit/notification/${transitId}`);
+      }, 300);
+    } catch (error) {
+      console.error("Update error:", error.message);
+    }
   };
 
-  const handleNotificationClick = async (postId) => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ seen: true })
-      .eq("post_id", postId);
-  
-    if (error) {
-      console.error("Erreur lors de la mise à jour de la notification :", error.message);
-      return;
-    }
-  
-    // Ferme le panneau
-    setIsPanelOpen(false);
-  
-    // Ajoute un petit délai pour éviter un conflit avec le re-render de React
-    setTimeout(() => {
-      navigate(`/transit/notification/${postId}`);
-    }, 300); // 300ms pour laisser le panneau se fermer proprement
-  };  
-
   const calculateTimeElapsed = (timestamp) => {
+    if (!timestamp) return "Date inconnue";
     const now = new Date();
     const postDate = new Date(timestamp);
     const timeDiff = now - postDate;
-
     const minutes = Math.floor(timeDiff / (1000 * 60));
     const hours = Math.floor(timeDiff / (1000 * 60 * 60));
     const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
     const months = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 30));
     const years = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 365));
-
-    if (minutes < 60) {
-      return `il y a ${minutes} minute${minutes !== 1 ? "s" : ""}`;
-    } else if (hours < 24) {
-      return `il y a ${hours} heure${hours !== 1 ? "s" : ""}`;
-    } else if (days < 30) {
-      return `il y a ${days} jour${days !== 1 ? "s" : ""}`;
-    } else if (months < 12) {
-      return `il y a ${months} mois`;
-    } else {
-      return `il y a ${years} an${years !== 1 ? "s" : ""}`;
-    }
+    if (minutes < 60) return `il y a ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+    if (hours < 24) return `il y a ${hours} heure${hours !== 1 ? "s" : ""}`;
+    if (days < 30) return `il y a ${days} jour${days !== 1 ? "s" : ""}`;
+    if (months < 12) return `il y a ${months} mois`;
+    return `il y a ${years} an${years !== 1 ? "s" : ""}`;
   };
 
   return (
@@ -94,32 +145,37 @@ const Header = () => {
         {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
       </div>
 
-      {/* Notification Panel */}
       <div className={`notification-panel ${isPanelOpen ? "open" : ""}`}>
         <div className="panel-header">
           <h3>Notifications</h3>
           <button className="close-btn" onClick={togglePanel}>×</button>
         </div>
         <div className="notification-list">
-          {notifications.length > 0 ? (
+          {loading ? (
+            <p>Chargement...</p>
+          ) : error ? (
+            <p className="error">{error}</p>
+          ) : notifications.length > 0 ? (
             notifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`notification-item ${notification.seen ? "seen" : ""}`}
-                onClick={() => handleNotificationClick(notification.post_id)}
+                onClick={() => handleNotificationClick(notification.transit_id)}
               >
-                <div className="notification-row">
-                  {notification.posts?.image && (
-                    <img
-                      src={notification.posts.image}
-                      alt={notification.posts.product}
-                      className="post-image"
-                    />
-                  )}
-                  <p>
-                    Nouvelle proposition pour{" "}
-                    <strong>{notification.posts?.product || "un post inconnu"}</strong>
-                  </p>
+                <div className="notification-rows">
+                  <div className="icon-bg">
+                    <i className="bi bi-megaphone-fill"></i>
+                  </div>
+                  <div className="nt-container">
+                    <div className="nt-row">
+                      Proposition de{" "}
+                      <p>{notification.users?.username || "inconnu"}</p>
+                    </div>
+                    <p>
+                      De <strong>{notification.transits?.from || "inconnu"}</strong> à{" "}
+                      <strong>{notification.transits?.to || "inconnu"}</strong>
+                    </p>
+                  </div>
                 </div>
                 <span>{calculateTimeElapsed(notification.created_at)}</span>
               </div>

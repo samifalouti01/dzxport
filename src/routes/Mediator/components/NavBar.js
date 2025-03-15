@@ -8,13 +8,10 @@ const NavBar = () => {
   const [showModal, setShowModal] = useState(false);
   const [showInput, setShowInput] = useState(false);
   const [formData, setFormData] = useState({
-    product: "",
+    title: "",
     from: "",
-    quantity: "",
-    unity: "",
-    quantityValue: "", // Stocke la valeur de la quantité
-    lists: "vendre",
-    imageFile: null,
+    to: "",
+    price: "",
   });
   const [loading, setLoading] = useState(false);
   const modalRef = useRef(null);
@@ -22,34 +19,10 @@ const NavBar = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === "unity") {
-      setShowInput(value !== ""); // Affiche l'input si une unité est sélectionnée
-      setFormData({ ...formData, unity: value, quantity: "" });
-    } else if (name === "quantityValue") {
-      setFormData({ ...formData, quantity: value });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-  };
-
-  const handleImageUpload = async () => {
-    if (!formData.imageFile) return null;
-
-    const file = formData.imageFile;
-    const filePath = `products/${Date.now()}-${file.name}`;
-
-    const { data, error } = await supabase.storage
-      .from("products")
-      .upload(filePath, file);
-
-    if (error) {
-      console.error("Image upload error:", error.message);
-      return null;
-    }
-
-    const { data: publicUrlData } = supabase.storage.from("products").getPublicUrl(filePath);
-    return publicUrlData.publicUrl;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -63,25 +36,22 @@ const NavBar = () => {
         return;
       }
 
-      const imageUrl = await handleImageUpload();
-      const { data, error } = await supabase.from("posts").insert([
+      const { data, error } = await supabase.from("transits").insert([
         {
-          product: formData.product,
+          title: formData.title,
           from: formData.from,
-          quantity: formData.quantity, // Stocke la valeur saisie
-          unity: formData.unity, // Stocke l'unité sélectionnée
-          lists: formData.lists,
-          image: imageUrl || null,
+          to: formData.to,
+          price: formData.price,
           user_id: userId,
         },
       ]);
 
       if (error) throw error;
 
-      alert("Post ajouté avec succès !");
+      alert("Offre ajouté avec succès !");
       closeModal();
     } catch (error) {
-      console.error("Erreur lors de l'ajout du post :", error.message);
+      console.error("Erreur lors de l'ajout d'offre :", error.message);
     } finally {
       setLoading(false);
     }
@@ -91,13 +61,10 @@ const NavBar = () => {
     setShowModal(false);
     setShowInput(false);
     setFormData({
-      product: "",
+      title: "",
       from: "",
-      quantity: "",
-      unity: "",
-      quantityValue: "",
-      lists: "vendre",
-      imageFile: null,
+      to: "",
+      price: "",
     });
   };
 
@@ -124,24 +91,24 @@ const NavBar = () => {
     <>
       <nav className="navbar">
         <Link
-            to="/transit"
-            className={`nav-item ${location.pathname === "/transit" ? "active" : ""}`}
+          to="/transit"
+          className={`nav-item ${location.pathname === "/transit" ? "active" : ""}`}
         >
-            <i className={`bi ${location.pathname === "/transit" ? "bi-house-door-fill" : "bi-house"} nav-icon`}></i>
-            <span className="nav-text">Home</span>
+          <i className={`bi ${location.pathname === "/transit" ? "bi-house-door-fill" : "bi-house"} nav-icon`}></i>
+          <span className="nav-text">Home</span>
         </Link>
 
         <button className="nav-item add-post" onClick={() => setShowModal(true)}>
-            <i className="bi bi-plus-square nav-icon"></i>
-            <span className="nav-text">Add Post</span>
+          <i className="bi bi-plus-square nav-icon"></i>
+          <span className="nav-text">Add Post</span>
         </button>
 
         <Link
-            to="/transit/profile"
-            className={`nav-item ${location.pathname === "/transit/profile" ? "active" : ""}`}
+          to="/transit/profile"
+          className={`nav-item ${location.pathname === "/transit/profile" ? "active" : ""}`}
         >
-            <i className={`bi ${location.pathname === "/transit/profile" ? "bi-person-fill" : "bi-person"} nav-icon`}></i>
-            <span className="nav-text">Profile</span>
+          <i className={`bi ${location.pathname === "/transit/profile" ? "bi-person-fill" : "bi-person"} nav-icon`}></i>
+          <span className="nav-text">Profile</span>
         </Link>
       </nav>
 
@@ -156,56 +123,46 @@ const NavBar = () => {
             }}
           >
             <button className="close-button" onClick={closeModal}>
-              &times;
+              ×
             </button>
-            <h2>Ajouter un Post</h2>
+            <h2>Ajouter une Offre</h2>
             <form onSubmit={handleSubmit}>
               <input
                 type="text"
-                name="product"
-                placeholder="Produit"
-                value={formData.product}
+                name="title"
+                placeholder="Ajouter un titre"
+                value={formData.title}
                 onChange={handleChange}
                 required
               />
+
               <input
                 type="text"
                 name="from"
-                placeholder="Pays d'origine"
+                placeholder="De"
                 value={formData.from}
                 onChange={handleChange}
                 required
               />
 
-              {/* Sélection de l'unité */}
-              <select name="unity" value={formData.unity} onChange={handleChange} required>
-                <option value="">Sélectionner une unité...</option>
-                <option value="Kg">Kg</option>
-                <option value="Unité">Unité</option>
-              </select>
-
-              {/* Champ quantité visible uniquement si une unité est choisie */}
-              {showInput && (
-                <input
-                  type="number"
-                  name="quantityValue"
-                  placeholder="Quantité"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  required
-                />
-              )}
-
-              <select name="lists" value={formData.lists} onChange={handleChange} required>
-                <option value="vendre">Vendre</option>
-                <option value="acheter">Acheter</option>
-              </select>
               <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFormData({ ...formData, imageFile: e.target.files[0] })}
+                type="text"
+                name="to"
+                placeholder="À"
+                value={formData.to}
+                onChange={handleChange}
                 required
               />
+
+              <input
+                type="text"
+                name="price"
+                placeholder="Prix"
+                value={formData.price}
+                onChange={handleChange}
+                required
+              />
+
               <button type="submit" disabled={loading}>
                 {loading ? "Ajout en cours..." : "Ajouter"}
               </button>

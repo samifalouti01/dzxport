@@ -4,16 +4,18 @@ import { supabase } from "../../../utils/supabaseClient";
 import "./Header.css";
 
 const Header = () => {
+  const [postNotifications, setPostNotifications] = useState([]);
+  const [transitNotifications, setTransitNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState([]);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const userId = localStorage.getItem("id");
+  const [acceptedTransitIds, setAcceptedTransitIds] = useState(new Set());
 
-  useEffect(() => {
-    if (!userId) return;
-
-    const fetchNotifications = async () => {
+  // Fetch post notifications
+  const fetchPostNotifications = async () => {
+    try {
       const { data, error } = await supabase
         .from("notifications")
         .select(`
@@ -26,63 +28,218 @@ const Header = () => {
         .eq("receiver_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Erreur lors de la récupération des notifications :", error.message);
-      } else {
-        setNotifications(data);
-        setUnreadCount(data.filter((n) => !n.seen).length);
-      }
-    };
+      if (error) throw error;
+      console.log("Post notifications:", data);
+      setPostNotifications(data || []);
+    } catch (err) {
+      console.error("Error fetching post notifications:", err.message);
+      setError(`Post notifications: ${err.message}`);
+    }
+  };
 
-    fetchNotifications();
+  // Fetch transit notifications where userId is the sender_id
+  const fetchTransitNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("transit_notifications")
+        .select(`
+          id,
+          created_at,
+          seen,
+          transit_id,
+          sender_id,
+          transits(id, title, price, to, from)
+        `)
+        .eq("sender_id", userId) // Changed from receiver_id to sender_id
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      console.log("Transit notifications (sender):", data);
+      setTransitNotifications(data || []);
+    } catch (err) {
+      console.error("Error fetching transit notifications:", err.message);
+      setError(prev => (prev ? `${prev}; Transit notifications: ${err.message}` : `Transit notifications: ${err.message}`));
+    }
+  };
+
+  // Update unread count
+  const updateUnreadCount = () => {
+    const totalUnread = [
+      ...postNotifications.filter(n => !n.seen),
+      ...transitNotifications.filter(n => !n.seen),
+    ].length;
+    setUnreadCount(totalUnread);
+  };
+
+  useEffect(() => {
+    if (!userId) {
+      setError("No user ID found in localStorage");
+      return;
+    }
+  
+    // Initial fetch
+    fetchPostNotifications();
+    fetchTransitNotifications();
+    fetchAcceptedProposals(); // Fetch initial accepted proposals
+  
+    // Real-time subscription for transit_proposals
+    const proposalSubscription = supabase
+      .channel("transit_proposals")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "transit_proposals",
+          filter: `status=eq.accepted`,
+        },
+        async (payload) => {
+          const { new: updatedProposal } = payload;
+          const { transit_id, owner_id, sender_id } = updatedProposal;
+  
+          console.log("Subscription triggered - Payload:", payload);
+          console.log("Proposal accepted - Transit ID:", transit_id, "Owner ID:", owner_id, "Sender ID:", sender_id);
+          setAcceptedTransitIds(prev => {
+            const newSet = new Set(prev).add(transit_id);
+            console.log("Updated acceptedTransitIds:", Array.from(newSet));
+            return newSet;
+          });
+  
+          const { error } = await supabase
+            .from("transit_notifications")
+            .insert({
+              receiver_id: owner_id,
+              transit_id: transit_id,
+              sender_id: sender_id,
+              seen: false,
+              created_at: new Date().toISOString(),
+            });
+  
+          if (error) {
+            console.error("Insert error:", error.message);
+          } else {
+            if (sender_id === userId) {
+              fetchTransitNotifications();
+            }
+          }
+        }
+      )
+      .subscribe();
+  
+    // Real-time subscription for post notifications
+    const postSubscription = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `receiver_id=eq.${userId}`,
+        },
+        () => {
+          console.log("Post notification update");
+          fetchPostNotifications();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for transit notifications
+    const transitSubscription = supabase
+      .channel("transit_notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transit_notifications",
+          filter: `sender_id=eq.${userId}`, // Changed to sender_id
+        },
+        () => {
+          console.log("Transit notification update");
+          fetchTransitNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      proposalSubscription.unsubscribe();
+      postSubscription.unsubscribe();
+      transitSubscription.unsubscribe();
+    };
   }, [userId]);
+
+  useEffect(() => {
+    updateUnreadCount();
+  }, [postNotifications, transitNotifications]);
 
   const togglePanel = () => {
     setIsPanelOpen(!isPanelOpen);
   };
 
-  const handleNotificationClick = async (postId) => {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ seen: true })
-      .eq("post_id", postId);
-  
-    if (error) {
-      console.error("Erreur lors de la mise à jour de la notification :", error.message);
-      return;
+  const handleNotificationClick = async (notification) => {
+    const { type, post_id, transit_id, id } = notification;
+
+    try {
+      if (type === "post" && post_id) {
+        const { error } = await supabase
+          .from("notifications")
+          .update({ seen: true })
+          .eq("post_id", post_id);
+        if (error) throw error;
+        setPostNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, seen: true } : n))
+        );
+        navigate(`/main/notification/${post_id}`);
+      } else if (type === "transit" && transit_id) {
+        const { error } = await supabase
+          .from("transit_notifications")
+          .update({ seen: true })
+          .eq("transit_id", transit_id)
+          .eq("sender_id", userId); // Ensure only sender's notification is updated
+        if (error) throw error;
+        setTransitNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, seen: true } : n))
+        );
+        navigate(`/transit/notification/${transit_id}`);
+      }
+      setIsPanelOpen(false);
+    } catch (error) {
+      console.error("Update error:", error.message);
     }
-  
-    // Ferme le panneau
-    setIsPanelOpen(false);
-  
-    // Ajoute un petit délai pour éviter un conflit avec le re-render de React
-    setTimeout(() => {
-      navigate(`/main/notification/${postId}`);
-    }, 300); // 300ms pour laisser le panneau se fermer proprement
-  };  
+  };
+
+  // Fetch initially accepted transit proposals
+  const fetchAcceptedProposals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("transit_proposals")
+        .select("transit_id")
+        .eq("status", "accepted");
+
+      if (error) throw error;
+      console.log("Initially accepted transit IDs:", data);
+      setAcceptedTransitIds(new Set(data.map(item => item.transit_id)));
+    } catch (err) {
+      console.error("Error fetching accepted proposals:", err.message);
+      setError(prev => (prev ? `${prev}; Accepted proposals: ${err.message}` : `Accepted proposals: ${err.message}`));
+    }
+  };
 
   const calculateTimeElapsed = (timestamp) => {
     const now = new Date();
     const postDate = new Date(timestamp);
     const timeDiff = now - postDate;
-
     const minutes = Math.floor(timeDiff / (1000 * 60));
     const hours = Math.floor(timeDiff / (1000 * 60 * 60));
     const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
     const months = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 30));
     const years = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 365));
-
-    if (minutes < 60) {
-      return `il y a ${minutes} minute${minutes !== 1 ? "s" : ""}`;
-    } else if (hours < 24) {
-      return `il y a ${hours} heure${hours !== 1 ? "s" : ""}`;
-    } else if (days < 30) {
-      return `il y a ${days} jour${days !== 1 ? "s" : ""}`;
-    } else if (months < 12) {
-      return `il y a ${months} mois`;
-    } else {
-      return `il y a ${years} an${years !== 1 ? "s" : ""}`;
-    }
+    if (minutes < 60) return `il y a ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+    if (hours < 24) return `il y a ${hours} heure${hours !== 1 ? "s" : ""}`;
+    if (days < 30) return `il y a ${days} jour${days !== 1 ? "s" : ""}`;
+    if (months < 12) return `il y a ${months} mois`;
+    return `il y a ${years} an${years !== 1 ? "s" : ""}`;
   };
 
   return (
@@ -95,39 +252,74 @@ const Header = () => {
         {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
       </div>
 
-      {/* Notification Panel */}
       <div className={`notification-panel ${isPanelOpen ? "open" : ""}`}>
         <div className="panel-header">
           <h3>Notifications</h3>
           <button className="close-btn" onClick={togglePanel}>×</button>
         </div>
         <div className="notification-list">
-          {notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`notification-item ${notification.seen ? "seen" : ""}`}
-                onClick={() => handleNotificationClick(notification.post_id)}
-              >
-                <div className="notification-row">
-                  {notification.posts?.image && (
-                    <img
-                      src={notification.posts.image}
-                      alt={notification.posts.product}
-                      className="post-image"
-                    />
-                  )}
-                  <p>
-                    Nouvelle proposition pour{" "}
-                    <strong>{notification.posts?.product || "un post inconnu"}</strong>
-                  </p>
+          {error && <p className="error">{error}</p>}
+
+          {/* Post Notifications Section */}
+          <div className="notification-section">
+            <h4>Notifications des Posts</h4>
+            {postNotifications.length > 0 ? (
+              postNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`notification-item ${notification.seen ? "seen" : ""}`}
+                  onClick={() => handleNotificationClick({ ...notification, type: "post" })}
+                >
+                  <div className="notification-row">
+                    {notification.posts?.image && (
+                      <img
+                        src={notification.posts.image}
+                        alt={notification.posts.product}
+                        className="post-image"
+                      />
+                    )}
+                    <p>
+                      Nouvelle proposition pour{" "}
+                      <strong>{notification.posts?.product || "un post inconnu"}</strong>
+                    </p>
+                  </div>
+                  <span>{calculateTimeElapsed(notification.created_at)}</span>
                 </div>
-                <span>{calculateTimeElapsed(notification.created_at)}</span>
-              </div>
-            ))
-          ) : (
-            <p className="no-notifications">Aucune notification</p>
-          )}
+              ))
+            ) : (
+              <p className="no-notifications">Aucune notification de posts</p>
+            )}
+          </div>
+
+          {/* Transit Notifications Section */}
+          <div className="notification-section">
+            <h4>Notifications des Transits</h4>
+            {transitNotifications.length > 0 ? (
+              transitNotifications.map((notification) => {
+                console.log(`Checking transit_id: ${notification.transit_id}, In acceptedTransitIds: ${acceptedTransitIds.has(notification.transit_id)}`);
+                return (
+                  <div
+                    key={notification.id}
+                    className={`notification-item ${notification.seen ? "seen" : ""}`}
+                    onClick={() => handleNotificationClick({ ...notification, type: "transit" })}
+                  >
+                    <div className="notification-row">
+                      <p>
+                        Proposition pour transit{" "}
+                        <strong>{notification.transits?.title || "un transit inconnu"}</strong>
+                        {acceptedTransitIds.has(notification.transit_id) && (
+                          <p> a été accepté!</p>
+                        )}
+                      </p>
+                    </div>
+                    <span>{calculateTimeElapsed(notification.created_at)}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="no-notifications">Aucune notification de transits</p>
+            )}
+          </div>
         </div>
       </div>
     </header>

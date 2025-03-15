@@ -37,7 +37,7 @@
   width: 100%;
   padding: 0.8rem;
   margin-top: 1rem;
-  background: linear-gradient(90deg, #7b00a8, #5700b4);
+  background: linear-gradient(90deg, #49509E, #5700b4);
   color: white;
   font-size: 1rem;
   font-weight: bold;
@@ -67,7 +67,7 @@
   top: 1rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #7b00a8;
+  background: #49509E;
   color: white;
   padding: 1rem 2rem;
   border-radius: 12px;

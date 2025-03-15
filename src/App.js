@@ -16,7 +16,7 @@ import HomeM from './routes/Mediator/pages/Home';
 import ProfileM from './routes/Mediator/pages/Profile';
 import Create from './routes/Mediator/pages/Create';
 import Containers from './routes/Mediator/pages/Containers';
-
+import Notifi from './routes/Mediator/pages/Notifications';
 
 function App() {
   return (
@@ -39,6 +39,7 @@ function App() {
           <Route path="profile" element={<ProfileM />} /> 
           <Route path="containers" element={<Containers />} />
           <Route path="create" element={<Create />} />
+          <Route path="notification/:transitId" element={<Notifi />} />
         </Route>
       </Routes>
     </Router>

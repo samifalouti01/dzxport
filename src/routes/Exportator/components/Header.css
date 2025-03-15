@@ -107,11 +107,14 @@
 }
 
 .notification-row p {
+  padding: 0;
   margin: 0;
-  height: fit-content;
 }
 
 .notification-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   background-color: #e0e3fa;
   text-align: end;
   padding: 10px;
@@ -122,8 +125,9 @@
   width: 70px;
   height: 70px;
   border-radius: 100px;
-  margin-top: 5px;
   object-fit: cover;
+  margin: 0;
+  padding: 0;
 }
 
 .notification-item span {
@@ -139,4 +143,65 @@
 
 .notification-item.seen {
   background: #fafafa;
+}
+
+.notification-section {
+  margin-bottom: 20px;
+}
+
+.notification-section h4 {
+  margin: 10px 0;
+  font-size: 1.1em;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+/*transit*/
+
+.notification-rows {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-direction: row;
+  text-align: left;
+  gap: 20px;
+}
+
+.notification-rows p {
+  padding: 0;
+  margin: 0;
+}
+
+.icon-bg {
+  background-color: #edc9ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  margin: 0;
+  border: none;
+  border-radius: 100px;
+  width: 50px;
+  height: 50px;
+}
+
+.nt-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.nt-row p {
+  font-weight: bold;
+  color: #49509E
+}
+
+.nt-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
