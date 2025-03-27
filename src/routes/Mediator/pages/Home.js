@@ -10,6 +10,14 @@ const Home = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const [proposalStatuses, setProposalStatuses] = useState({});
+  const [minQuantity, setMinQuantity] = useState(null);
+  const [maxQuantity, setMaxQuantity] = useState(null);
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  
+  const uniqueFromLocations = [...new Set(shipPosts.map(post => post.from))].sort();
+  const uniqueToLocations = [...new Set(shipPosts.map(post => post.to))].sort();
 
   useEffect(() => {
     const fetchShipPosts = async () => {
@@ -72,14 +80,89 @@ const Home = () => {
 
   const sendProposal = (post) => {
     console.log("Sending proposal for:", post);
-    // Implémenter la logique d'envoi d'une proposition
+    // Implement proposal sending logic here
   };
+
+  const filteredPosts = shipPosts.filter((post) => {
+    // Quantity filtering
+    const quantity = parseFloat(post.quantity) || 0;
+    const min = minQuantity ? parseFloat(minQuantity) : -Infinity;
+    const max = maxQuantity ? parseFloat(maxQuantity) : Infinity;
+    const withinQuantityRange = quantity >= min && quantity <= max;
+
+    // Location filtering (case-insensitive)
+    const fromMatch = filterFrom 
+      ? post.from.toLowerCase() === filterFrom.toLowerCase()
+      : true;
+    const toMatch = filterTo
+      ? post.to.toLowerCase() === filterTo.toLowerCase()
+      : true;
+
+    return withinQuantityRange && fromMatch && toMatch;
+  });
 
   return (
     <div className="Home">
       <div className="list">
-        {shipPosts.length > 0 ? (
-          shipPosts.map((post, index) => (
+        <div className="header-section">
+          <button 
+            className="filter-toggle-btn"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <i className="bi bi-filter"></i>
+            {showFilters ? 'Masquer filtres' : 'Filtres'}
+          </button>
+        </div>
+
+        {showFilters && (
+          <div className="filters">
+            <div className="price-filter">
+              <h5>Filtrer par quantité</h5>
+              <input
+                type="number"
+                placeholder="Quantité minimum"
+                value={minQuantity || ''}
+                onChange={(e) => setMinQuantity(e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Quantité maximum"
+                value={maxQuantity || ''}
+                onChange={(e) => setMaxQuantity(e.target.value)}
+              />
+            </div>
+            
+            <div className="location-filter">
+              <h5>Filtrer par localisation</h5>
+              <select
+                value={filterFrom || ''}
+                onChange={(e) => setFilterFrom(e.target.value)}
+              >
+                <option value="">Tous les départs</option>
+                {uniqueFromLocations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+              
+              <select
+                value={filterTo || ''}
+                onChange={(e) => setFilterTo(e.target.value)}
+              >
+                <option value="">Toutes les destinations</option>
+                {uniqueToLocations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {filteredPosts.length > 0 ? (
+          filteredPosts.map((post, index) => (
             <div key={index} className="post">
               {post.image && (
                 <img onClick={() => handleImageClick(post.image)} src={post.image} alt={post.product} />
@@ -92,7 +175,7 @@ const Home = () => {
                 Quantité: <span>{post.quantity} {post.unity}</span>
               </p>
               <p>
-                De: <span>{post.from}</span>À: <span>{post.to || "Non spécifié"}</span>
+                De: <span>{post.from}</span> À: <span>{post.to || "Non spécifié"}</span>
               </p>
               {proposalStatuses[post.id] ? (
                 <p style={{ color: "white" }} className={`proposal-status ${proposalStatuses[post.id]}`}>
@@ -118,7 +201,7 @@ const Home = () => {
 
       <NavBar />
     </div>
-  );
+  );  
 };
 
 export default Home;
