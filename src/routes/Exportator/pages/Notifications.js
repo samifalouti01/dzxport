@@ -74,7 +74,7 @@ const Notifications = () => {
 
           const { data: proposalData, error: proposalError } = await supabase
             .from("transit_proposals")
-            .select("sender_id, status")
+            .select("owner_id, sender_id, status")
             .eq("id", proposalId)
             .single();
 
@@ -84,7 +84,7 @@ const Notifications = () => {
             const { data, error } = await supabase
               .from("users")
               .select("username, phone, email, role, country")
-              .eq("id", proposalData.sender_id)
+              .eq("id", proposalData.owner_id)
               .single();
 
             if (error) {

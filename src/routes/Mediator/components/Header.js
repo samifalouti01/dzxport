@@ -172,9 +172,7 @@ const Header = () => {
                       <p>{notification.users?.username || "inconnu"}</p>
                     </div>
                     <p>
-                      De <strong>{notification.transits?.from || "inconnu"}</strong> à{" "}
-                      <strong>{notification.transits?.to || "inconnu"}</strong>
-                    </p>
+                      pour <strong>{notification.transits?.title || "inconnu"}</strong>                    </p>
                   </div>
                 </div>
                 <span>{calculateTimeElapsed(notification.created_at)}</span>
