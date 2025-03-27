@@ -7,7 +7,14 @@ const Transiteurs = () => {
   const [transits, setTransits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sentProposals, setSentProposals] = useState(new Set()); // Track sent proposal transit IDs
+  const [sentProposals, setSentProposals] = useState(new Set()); 
+  const [minPrice, setMinPrice] = useState(null);
+  const [maxPrice, setMaxPrice] = useState(null);
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const uniqueFromLocations = [...new Set(transits.map(transit => transit.from))].sort();
+  const uniqueToLocations = [...new Set(transits.map(transit => transit.to))].sort();
 
   // Fetch transits and user's existing proposals from Supabase
   useEffect(() => {
@@ -115,17 +122,92 @@ const Transiteurs = () => {
     }
   };
 
+  const filteredTransits = transits.filter((transit) => {
+    // Price filtering
+    const price = parseFloat(transit.price);
+    const min = minPrice ? parseFloat(minPrice) : -Infinity;
+    const max = maxPrice ? parseFloat(maxPrice) : Infinity;
+    const withinPriceRange = price >= min && price <= max;
+  
+    // Location filtering (case-insensitive)
+    const fromMatch = filterFrom 
+      ? transit.from.toLowerCase().includes(filterFrom.toLowerCase())
+      : true;
+    const toMatch = filterTo
+      ? transit.to.toLowerCase().includes(filterTo.toLowerCase())
+      : true;
+  
+    return withinPriceRange && fromMatch && toMatch;
+  });
+
   return (
     <div>
       <div className="transiteurs-container">
-        <h1>Transiteurs</h1>
+        <div className="header-section">
+          <h1>Transiteurs</h1>
+          <button 
+            className="filter-toggle-btn"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <i className="bi bi-filter"></i>
+            {showFilters ? 'Masquer filtres' : 'Filtres'}
+          </button>
+        </div>
+  
+        {showFilters && (
+          <div className="filters">
+            <div className="price-filter">
+              <h5>Filtrer par prix</h5>
+              <input
+                type="number"
+                placeholder="Prix minimum"
+                value={minPrice || ''}
+                onChange={(e) => setMinPrice(e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Prix maximum"
+                value={maxPrice || ''}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </div>
+            
+            <div className="location-filter">
+              <h5>Filtrer par localisation</h5>
+              <select
+                value={filterFrom || ''}
+                onChange={(e) => setFilterFrom(e.target.value)}
+              >
+                <option value="">Tous les départs</option>
+                {uniqueFromLocations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+              
+              <select
+                value={filterTo || ''}
+                onChange={(e) => setFilterTo(e.target.value)}
+              >
+                <option value="">Toutes les destinations</option>
+                {uniqueToLocations.map((location) => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+  
         {loading && <p>Chargement...</p>}
         {error && <p className="error">{error}</p>}
-        {!loading && !error && transits.length === 0 && (
+        {!loading && !error && filteredTransits.length === 0 && (
           <p>Aucune offre disponible pour le moment.</p>
         )}
         <div className="transits-grid">
-          {transits.map((transit) => (
+          {filteredTransits.map((transit) => (
             <div key={transit.id} className="transit-card">
               <h3>{transit.title}</h3>
               <p>
@@ -140,7 +222,7 @@ const Transiteurs = () => {
               <button
                 className="trs-btn"
                 onClick={() => handleSendOffer(transit)}
-                disabled={sentProposals.has(transit.id)} // Disable if proposal already sent
+                disabled={sentProposals.has(transit.id)}
               >
                 {sentProposals.has(transit.id) ? 'Offre envoyée' : 'Envoyer une offre'}
               </button>

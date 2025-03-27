@@ -71,3 +71,66 @@
     opacity: 0.6; /* Slightly faded effect */
     cursor: not-allowed; /* Change cursor to indicate disabled */
   }
+
+  .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .filter-toggle-btn {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .filter-toggle-btn:hover {
+    background-color: #49509E;
+    color: #fff;
+  }
+  
+  .filters {
+    margin: 0 0 20px 0;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+  }
+  
+  .price-filter, .location-filter {
+    margin-bottom: 15px;
+  }
+  
+  .price-filter h5, .location-filter h5 {
+    margin-bottom: 10px;
+  }
+  
+  .filters input,
+  .filters select {
+    padding: 8px;
+    margin: 0 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 120px;
+    background-color: white;
+  }
+  
+  .filters select {
+    width: 150px; 
+    margin-bottom: 15px;
+  }
+  .filters input[type="number"]::-webkit-inner-spin-button,
+  .filters input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+  }
+
+  .filters input:focus {
+    outline: none;
+    border-color: #49509E;
+  }

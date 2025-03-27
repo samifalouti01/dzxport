@@ -35,6 +35,7 @@ const Home = () => {
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [activeFilter, setActiveFilter] = useState("vendre"); // Default to "Vendre"
   const [selectedCountry, setSelectedCountry] = useState("");
+  const uniqueLocations = [...new Set(posts.map(post => post.from || post.to))].sort();
   const [searchTerm, setSearchTerm] = useState("");
   const [proposalStatuses, setProposalStatuses] = useState({});
   const [isImageOpen, setIsImageOpen] = useState(false);
@@ -200,15 +201,16 @@ const Home = () => {
           </div>
           {/* Filter Options */}
           <div className="list-header">
-            <select onChange={(e) => setSelectedCountry(e.target.value)} value={selectedCountry}>
+            <select
+              value={selectedCountry || ''}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+            >
               <option value="">Pays</option>
-              <option value="Algérie">Algérie</option>
-              <option value="France">France</option>
-              <option value="Chine">Chine</option>
-              <option value="Italie">Italie</option>
-              <option value="Tunisie">Tunisie</option>
-              <option value="Espagne">Espagne</option>
-              <option value="Ecuador">Ecuador</option>
+              {uniqueLocations.map((location) => (
+                <option key={location} value={location}>
+                  {location}
+                </option>
+              ))}
             </select>
             <input
               type="search"

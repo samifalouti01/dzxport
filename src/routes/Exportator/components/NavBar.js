@@ -29,7 +29,7 @@ const NavBar = () => {
             className={`nav-item ${location.pathname === "/main/posts" ? "active" : ""}`}
         >
             <i className={`bi ${location.pathname === "/main/posts" ? "bi-file-earmark-richtext-fill" : "bi-file-earmark-richtext"} nav-icon`}></i>
-            <span className="nav-text">Posts</span>
+            <span className="nav-text">Mes Posts</span>
         </Link>
 
         <Link
