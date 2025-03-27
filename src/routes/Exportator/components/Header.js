@@ -40,7 +40,19 @@ const Header = () => {
   // Fetch transit notifications where userId is the sender_id
   const fetchTransitNotifications = async () => {
     try {
-      const { data, error } = await supabase
+      // Step 1: Fetch accepted transit_ids from transit_proposals
+      const { data: acceptedProposals, error: proposalError } = await supabase
+        .from("transit_proposals")
+        .select("transit_id")
+        .eq("sender_id", userId)
+        .eq("status", "accepted");
+  
+      if (proposalError) throw proposalError;
+  
+      const acceptedTransitIds = new Set(acceptedProposals.map(p => p.transit_id));
+  
+      // Step 2: Fetch transit_notifications and filter by accepted transit_ids
+      const { data: notifications, error: notificationError } = await supabase
         .from("transit_notifications")
         .select(`
           id,
@@ -50,12 +62,18 @@ const Header = () => {
           sender_id,
           transits(id, title, price, to, from)
         `)
-        .eq("sender_id", userId) // Changed from receiver_id to sender_id
+        .eq("sender_id", userId)
         .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      console.log("Transit notifications (sender):", data);
-      setTransitNotifications(data || []);
+  
+      if (notificationError) throw notificationError;
+  
+      // Filter notifications to only include those with accepted transit_ids
+      const filteredNotifications = notifications.filter(notification =>
+        acceptedTransitIds.has(notification.transit_id)
+      );
+  
+      console.log("Filtered transit notifications (accepted only):", filteredNotifications);
+      setTransitNotifications(filteredNotifications || []);
     } catch (err) {
       console.error("Error fetching transit notifications:", err.message);
       setError(prev => (prev ? `${prev}; Transit notifications: ${err.message}` : `Transit notifications: ${err.message}`));
@@ -80,7 +98,7 @@ const Header = () => {
     // Initial fetch
     fetchPostNotifications();
     fetchTransitNotifications();
-    fetchAcceptedProposals(); // Fetch initial accepted proposals
+    fetchAcceptedProposals();
   
     // Real-time subscription for transit_proposals
     const proposalSubscription = supabase
@@ -91,20 +109,18 @@ const Header = () => {
           event: "UPDATE",
           schema: "public",
           table: "transit_proposals",
-          filter: `status=eq.accepted`,
+          filter: `status=eq.accepted`, // Only listen for 'accepted' updates
         },
         async (payload) => {
           const { new: updatedProposal } = payload;
-          const { transit_id, owner_id, sender_id } = updatedProposal;
+          const { transit_id, sender_id, owner_id } = updatedProposal;
   
-          console.log("Subscription triggered - Payload:", payload);
-          console.log("Proposal accepted - Transit ID:", transit_id, "Owner ID:", owner_id, "Sender ID:", sender_id);
-          setAcceptedTransitIds(prev => {
-            const newSet = new Set(prev).add(transit_id);
-            console.log("Updated acceptedTransitIds:", Array.from(newSet));
-            return newSet;
-          });
+          if (sender_id === userId) {
+            setAcceptedTransitIds(prev => new Set(prev).add(transit_id));
+            fetchTransitNotifications(); // Re-fetch with 'accepted' filter
+          }
   
+          // Insert notification for the owner
           const { error } = await supabase
             .from("transit_notifications")
             .insert({
@@ -117,10 +133,6 @@ const Header = () => {
   
           if (error) {
             console.error("Insert error:", error.message);
-          } else {
-            if (sender_id === userId) {
-              fetchTransitNotifications();
-            }
           }
         }
       )
@@ -143,8 +155,8 @@ const Header = () => {
         }
       )
       .subscribe();
-
-    // Real-time subscription for transit notifications
+  
+    // Real-time subscription for transit_notifications
     const transitSubscription = supabase
       .channel("transit_notifications")
       .on(
@@ -153,15 +165,15 @@ const Header = () => {
           event: "*",
           schema: "public",
           table: "transit_notifications",
-          filter: `sender_id=eq.${userId}`, // Changed to sender_id
+          filter: `sender_id=eq.${userId}`,
         },
         () => {
           console.log("Transit notification update");
-          fetchTransitNotifications();
+          fetchTransitNotifications(); // Re-fetch with 'accepted' filter
         }
       )
       .subscribe();
-
+  
     return () => {
       proposalSubscription.unsubscribe();
       postSubscription.unsubscribe();
@@ -179,9 +191,17 @@ const Header = () => {
 
   const handleNotificationClick = async (notification) => {
     const { type, post_id, transit_id, id } = notification;
-
+  
     try {
       if (type === "post" && post_id) {
+        const { data: proposalData, error: proposalError } = await supabase
+          .from("proposals")
+          .select("id")
+          .eq("post_id", post_id)
+          .limit(1); // Get the first proposal (or adjust logic as needed)
+        if (proposalError) throw proposalError;
+  
+        const proposalId = proposalData[0]?.id;
         const { error } = await supabase
           .from("notifications")
           .update({ seen: true })
@@ -190,18 +210,26 @@ const Header = () => {
         setPostNotifications(prev =>
           prev.map(n => (n.id === id ? { ...n, seen: true } : n))
         );
-        navigate(`/main/notification/${post_id}`);
+        navigate(`/main/notification/${post_id}/${proposalId}`);
       } else if (type === "transit" && transit_id) {
+        const { data: proposalData, error: proposalError } = await supabase
+          .from("transit_proposals")
+          .select("id")
+          .eq("transit_id", transit_id)
+          .limit(1); // Get the first proposal (or adjust logic)
+        if (proposalError) throw proposalError;
+  
+        const proposalId = proposalData[0]?.id;
         const { error } = await supabase
           .from("transit_notifications")
           .update({ seen: true })
           .eq("transit_id", transit_id)
-          .eq("sender_id", userId); // Ensure only sender's notification is updated
+          .eq("sender_id", userId);
         if (error) throw error;
         setTransitNotifications(prev =>
           prev.map(n => (n.id === id ? { ...n, seen: true } : n))
         );
-        navigate(`/transit/notification/${transit_id}`);
+        navigate(`/main/notifications/${transit_id}/${proposalId}`);
       }
       setIsPanelOpen(false);
     } catch (error) {
@@ -215,7 +243,8 @@ const Header = () => {
       const { data, error } = await supabase
         .from("transit_proposals")
         .select("transit_id")
-        .eq("status", "accepted");
+        .eq("status", "accepted")
+        .eq("sender_id", userId);
 
       if (error) throw error;
       console.log("Initially accepted transit IDs:", data);
@@ -295,27 +324,22 @@ const Header = () => {
           <div className="notification-section">
             <h4>Notifications des Transits</h4>
             {transitNotifications.length > 0 ? (
-              transitNotifications.map((notification) => {
-                console.log(`Checking transit_id: ${notification.transit_id}, In acceptedTransitIds: ${acceptedTransitIds.has(notification.transit_id)}`);
-                return (
-                  <div
-                    key={notification.id}
-                    className={`notification-item ${notification.seen ? "seen" : ""}`}
-                    onClick={() => handleNotificationClick({ ...notification, type: "transit" })}
-                  >
-                    <div className="notification-row">
-                      <p>
-                        Proposition pour transit{" "}
-                        <strong>{notification.transits?.title || "un transit inconnu"}</strong>
-                        {acceptedTransitIds.has(notification.transit_id) && (
-                          <p> a été accepté!</p>
-                        )}
-                      </p>
-                    </div>
-                    <span>{calculateTimeElapsed(notification.created_at)}</span>
+              transitNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`notification-item ${notification.seen ? "seen" : ""}`}
+                  onClick={() => handleNotificationClick({ ...notification, type: "transit" })}
+                >
+                  <div className="notification-row">
+                    <p>
+                      Proposition pour transit{" "}
+                      <strong>{notification.transits?.title || "un transit inconnu"}</strong>
+                      <p> a été accepté!</p>
+                    </p>
                   </div>
-                );
-              })
+                  <span>{calculateTimeElapsed(notification.created_at)}</span>
+                </div>
+              ))
             ) : (
               <p className="no-notifications">Aucune notification de transits</p>
             )}

@@ -7,19 +7,38 @@ const Transiteurs = () => {
   const [transits, setTransits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sentProposals, setSentProposals] = useState(new Set()); // Track sent proposal transit IDs
 
-  // Fetch transits data from Supabase
+  // Fetch transits and user's existing proposals from Supabase
   useEffect(() => {
-    const fetchTransits = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        const senderId = localStorage.getItem('id');
+        if (!senderId) {
+          throw new Error('Utilisateur non connecté');
+        }
+
+        // Fetch all transits
+        const { data: transitsData, error: transitsError } = await supabase
           .from('transits')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (transitsError) throw transitsError;
+        setTransits(transitsData);
 
-        setTransits(data);
+        // Fetch user's existing proposals
+        const { data: proposalsData, error: proposalsError } = await supabase
+          .from('transit_proposals')
+          .select('transit_id')
+          .eq('sender_id', senderId);
+
+        if (proposalsError) throw proposalsError;
+
+        // Store transit IDs of already sent proposals
+        const sentTransitIds = new Set(proposalsData.map((proposal) => proposal.transit_id));
+        setSentProposals(sentTransitIds);
+
       } catch (error) {
         setError('Erreur lors de la récupération des données : ' + error.message);
       } finally {
@@ -27,7 +46,7 @@ const Transiteurs = () => {
       }
     };
 
-    fetchTransits();
+    fetchData();
   }, []);
 
   // Handle sending an offer
@@ -39,8 +58,8 @@ const Transiteurs = () => {
         return;
       }
 
-      const ownerId = transit.user_id; // Text from transits
-      const transitId = transit.id; // bigint, but Supabase handles it
+      const ownerId = transit.user_id;
+      const transitId = transit.id;
 
       if (!ownerId || !transitId) {
         throw new Error('ID du propriétaire ou du transit manquant.');
@@ -54,8 +73,8 @@ const Transiteurs = () => {
         .insert([
           {
             transit_id: transitId,
-            sender_id: senderId, // String, matches text type
-            owner_id: ownerId,   // String, matches text type
+            sender_id: senderId,
+            owner_id: ownerId,
             status: 'pending',
           },
         ]);
@@ -72,9 +91,9 @@ const Transiteurs = () => {
         .from('transit_notifications')
         .insert([
           {
-            receiver_id: ownerId, // String, matches text type
+            receiver_id: ownerId,
             transit_id: transitId,
-            sender_id: senderId,  // String, matches text type
+            sender_id: senderId,
             seen: false,
           },
         ]);
@@ -85,6 +104,9 @@ const Transiteurs = () => {
       }
 
       console.log('Transit notification inserted:', notificationData);
+
+      // Update sentProposals to disable the button for this transit
+      setSentProposals((prev) => new Set(prev).add(transitId));
 
       alert('Offre envoyée avec succès !');
     } catch (error) {
@@ -118,8 +140,9 @@ const Transiteurs = () => {
               <button
                 className="trs-btn"
                 onClick={() => handleSendOffer(transit)}
+                disabled={sentProposals.has(transit.id)} // Disable if proposal already sent
               >
-                Envoyer une offre
+                {sentProposals.has(transit.id) ? 'Offre envoyée' : 'Envoyer une offre'}
               </button>
             </div>
           ))}

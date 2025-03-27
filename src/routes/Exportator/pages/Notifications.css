@@ -217,3 +217,23 @@
     cursor: not-allowed !important;
   }
   
+  .transit-info {
+    padding: 15px;
+    background-color: #f8f9fa; /* Light gray background for distinction */
+    border-radius: 8px;
+  }
+  
+  .transit-title {
+    font-size: 1.5rem;
+    color: #007bff; /* Blue to differentiate from post */
+    margin-bottom: 10px;
+  }
+  
+  .transit-details p {
+    margin: 5px 0;
+    font-size: 1rem;
+  }
+  
+  .transit-details strong {
+    color: #333;
+  }

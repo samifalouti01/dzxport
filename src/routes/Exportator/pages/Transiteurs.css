@@ -58,3 +58,15 @@
     color: #fff;
     background-color: #49509E;
   }
+
+  .trs-btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+  }
+  
+  /* Disabled state */
+  .trs-btn:disabled {
+    background-color: #cccccc; /* Light gray for disabled */
+    color: #666666; /* Darker gray text for contrast */
+    opacity: 0.6; /* Slightly faded effect */
+    cursor: not-allowed; /* Change cursor to indicate disabled */
+  }

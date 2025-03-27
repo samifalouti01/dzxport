@@ -4,128 +4,126 @@ import { supabase } from "../../../utils/supabaseClient";
 import "./Notifications.css";
 
 const Notifications = () => {
-  const { postId } = useParams(); 
+  const { postId, transitId, proposalId } = useParams();
   const [post, setPost] = useState(null);
+  const [transit, setTransit] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isImageOpen, setIsImageOpen] = useState(false); // État pour afficher l'image
-  const navigate = useNavigate();
+  const [isImageOpen, setIsImageOpen] = useState(false);
   const [proposalStatus, setProposalStatus] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPostAndUsers = async () => {
-      if (!postId) return;
-  
+    const fetchData = async () => {
+      if (!postId && !transitId) return;
+
       try {
-        const { data: postData, error: postError } = await supabase
-          .from("posts")
-          .select("id, created_at, user_id, product, image, from, quantity, unity")
-          .eq("id", postId)
-          .single();
-  
-        if (postError) {
-          console.error("Erreur lors de la récupération du post :", postError.message);
-          setLoading(false);
-          return;
-        }
-  
-        setPost(postData);
-  
-        let senderData = null;
-        let ownerData = null;
-  
-        // Récupérer l'expéditeur (sender_id) depuis la table proposals
-        const { data: proposalData, error: proposalError } = await supabase
-          .from("proposals")
-          .select("sender_id")
-          .eq("post_id", postId)
-          .single();
-  
-        if (proposalError) {
-          console.error("Erreur lors de la récupération du sender_id :", proposalError.message);
-        } else if (proposalData?.sender_id) {
-          const { data, error } = await supabase
-            .from("users")
-            .select("username, phone, email, role, country")
-            .eq("id", proposalData.sender_id)
+        let userData = null;
+
+        if (postId && proposalId) {
+          const { data: postData, error: postError } = await supabase
+            .from("posts")
+            .select("id, created_at, user_id, product, image, from, quantity, unity")
+            .eq("id", postId)
             .single();
-  
-          if (error) {
-            console.error("Erreur lors de la récupération de l'expéditeur :", error.message);
-          } else {
-            senderData = data;
+
+          if (postError) {
+            console.error("Post fetch error:", postError.message);
+            throw postError;
+          }
+          setPost(postData);
+
+          const { data: proposalData, error: proposalError } = await supabase
+            .from("proposals")
+            .select("sender_id, status")
+            .eq("id", proposalId)
+            .single();
+
+          if (proposalError) {
+            console.error("Proposal fetch error for post:", proposalError.message);
+          } else if (proposalData?.sender_id) {
+            const { data, error } = await supabase
+              .from("users")
+              .select("username, phone, email, role, country")
+              .eq("id", proposalData.sender_id)
+              .single();
+
+            if (error) {
+              console.error("User fetch error for post sender:", error.message);
+            } else {
+              userData = data;
+            }
+            console.log("Post Proposal Data (ID:", proposalId, "):", proposalData);
+            setProposalStatus(proposalData.status);
           }
         }
-  
-        // Récupérer le propriétaire du post (user_id)
-        if (postData?.user_id) {
-          const { data, error } = await supabase
-            .from("users")
-            .select("username, phone, email, role, country")
-            .eq("id", postData.user_id)
+
+        if (transitId && proposalId) {
+          const { data: transitData, error: transitError } = await supabase
+            .from("transits")
+            .select("id, created_at, user_id, title, price, to, from")
+            .eq("id", transitId)
             .single();
-  
-          if (error) {
-            console.error("Erreur lors de la récupération du propriétaire du post :", error.message);
-          } else {
-            ownerData = data;
+
+          if (transitError) {
+            console.error("Transit fetch error:", transitError.message);
+            throw transitError;
+          }
+          setTransit(transitData);
+          console.log("Transit Data:", transitData);
+
+          const { data: proposalData, error: proposalError } = await supabase
+            .from("transit_proposals")
+            .select("sender_id, status")
+            .eq("id", proposalId)
+            .single();
+
+          if (proposalError) {
+            console.error("Proposal fetch error for transit:", proposalError.message);
+          } else if (proposalData?.sender_id) {
+            const { data, error } = await supabase
+              .from("users")
+              .select("username, phone, email, role, country")
+              .eq("id", proposalData.sender_id)
+              .single();
+
+            if (error) {
+              console.error("User fetch error for transit sender:", error.message);
+            } else {
+              userData = data;
+            }
+            console.log("Transit Proposal Data (ID:", proposalId, "):", proposalData);
+            setProposalStatus(proposalData.status);
           }
         }
-  
-        // Afficher uniquement les informations de l'expéditeur
-        if (senderData) {
-          setUser(senderData);
-        } else if (ownerData) {
-          setUser(ownerData); // Si pas de sender, afficher le propriétaire du post
-        }
+
+        setUser(userData);
       } catch (err) {
-        console.error("Erreur générale :", err);
+        console.error("General fetch error:", err.message);
       } finally {
         setLoading(false);
       }
     };
-  
-    fetchPostAndUsers();
-  }, [postId]);  
 
-  useEffect(() => {
-    const fetchProposalStatus = async () => {
-      if (!postId) return;
-  
-      const { data, error } = await supabase
-        .from("proposals")
-        .select("status")
-        .eq("post_id", postId)
-        .single();
-  
-      if (error) {
-        console.error("Erreur lors de la récupération du statut :", error.message);
-      } else {
-        setProposalStatus(data?.status);
-      }
-    };
-  
-    fetchProposalStatus();
-  }, [postId]);
+    fetchData();
+  }, [postId, transitId, proposalId]);
 
   if (loading) {
     return <p className="loading">Chargement...</p>;
   }
 
-  if (!post) {
-    return <p className="error">Aucun post trouvé</p>;
+  if (!post && !transit) {
+    return <p className="error">Aucune donnée trouvée</p>;
   }
 
   const handleBack = () => {
-    navigate(-1); // Retourner à la page précédente
+    navigate(-1);
   };
 
-  // Fonction pour afficher l'image en grand
   const handleImageClick = () => {
     setIsImageOpen(true);
   };
 
-  // Fonction pour fermer l'image si on clique en dehors
   const handleCloseImage = (e) => {
     if (e.target.classList.contains("image-popup")) {
       setIsImageOpen(false);
@@ -133,76 +131,116 @@ const Notifications = () => {
   };
 
   const handleStatusUpdate = async (newStatus) => {
-    if (!postId) return;
-  
-    const { error } = await supabase
-      .from("proposals")
-      .update({ status: newStatus })
-      .eq("post_id", postId);
-  
-    if (error) {
+    try {
+      if (postId && proposalId) {
+        const { error } = await supabase
+          .from("proposals")
+          .update({ status: newStatus })
+          .eq("id", proposalId);
+
+        if (error) throw error;
+
+        // Re-fetch the specific proposal status
+        const { data: updatedProposal, error: fetchError } = await supabase
+          .from("proposals")
+          .select("status")
+          .eq("id", proposalId)
+          .single();
+
+        if (fetchError) throw fetchError;
+        setProposalStatus(updatedProposal.status);
+      } else if (transitId && proposalId) {
+        const { error } = await supabase
+          .from("transit_proposals")
+          .update({ status: newStatus })
+          .eq("id", proposalId);
+
+        if (error) throw error;
+
+        // Re-fetch the specific proposal status
+        const { data: updatedProposal, error: fetchError } = await supabase
+          .from("transit_proposals")
+          .select("status")
+          .eq("id", proposalId)
+          .single();
+
+        if (fetchError) throw fetchError;
+        setProposalStatus(updatedProposal.status);
+      }
+    } catch (error) {
       console.error("Erreur lors de la mise à jour du statut :", error.message);
-    } else {
-      console.log("Status updated to:", newStatus);
-      
-      // Force React to update the UI immediately
-      setProposalStatus(newStatus);
     }
   };
-  
+
   const capitalizeFirstLetter = (string) => {
-    if (!string) return '';
+    if (!string) return "";
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
   return (
     <div className="alert-container">
       <button onClick={handleBack} className="backButton">
-        <i className="bi bi-chevron-left"></i> {post.product || "Inconnu"}
+        <i className="bi bi-chevron-left"></i> {post?.product || transit?.title || "Inconnu"}
       </button>
       <div className="alert-card">
-        {post.image && (
-          <img
-            src={post.image}
-            alt={post.product}
-            className="alert-image"
-            onClick={handleImageClick} // Ouvre l'image en grand
-          />
+        {post ? (
+          <>
+            {post.image && (
+              <img
+                src={post.image}
+                alt={post.product}
+                className="alert-image"
+                onClick={handleImageClick}
+              />
+            )}
+            <div className="alert-info">
+              <h3 className="alert-title">Produit : {post.product || "Inconnu"}</h3>
+              <p className="alert-detail">Quantité : <span>{post.quantity || "Non spécifié"} {post.unity}</span></p>
+              <p className="alert-detail">De : <span>{post.from || "Anonyme"}</span></p>
+              <p className="alert-detail">Posté le : <span>{new Date(post.created_at).toLocaleString()}</span></p>
+            </div>
+          </>
+        ) : transit ? (
+          <div className="transit-info">
+            <h3 className="transit-title">Transit : {transit.title || "Inconnu"}</h3>
+            <div className="transit-details">
+              <p><strong>Départ :</strong> {transit.from || "Inconnu"}</p>
+              <p><strong>Arrivée :</strong> {transit.to || "Inconnu"}</p>
+              <p><strong>Prix :</strong> {transit.price ? `${transit.price} DZD / KG` : "Non spécifié"}</p>
+              <p><strong>Date de création :</strong> {new Date(transit.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="error">Erreur : Données non chargées</p>
         )}
-        <div className="alert-info">
-          <h3 className="alert-title">Produit : {post.product || "Inconnu"}</h3>
-          <p className="alert-detail">Quantité : <span>{post.quantity || "Non spécifié"} {post.unity}</span></p>
-          <p className="alert-detail">De : <span>{post.from || "Anonyme"}</span></p>
-          <p className="alert-detail">Posté le : <span>{new Date(post.created_at).toLocaleString()}</span></p>
-        </div>
       </div>
 
-      {user && (
+      {user ? (
         <div className="user-info">
-          <h3>Informations de l'utilisateur</h3>
+          <h3>{post ? "Expéditeur de la Proposition" : "Expéditeur de la Proposition de Transit"}</h3>
           <p><strong>Nom d'utilisateur :</strong> {user.username || "Inconnu"}</p>
           <p><strong>Téléphone :</strong> {user.phone || "Non spécifié"}</p>
           <p><strong>Email :</strong> {user.email || "Non spécifié"}</p>
-          <p><strong>Country :</strong> {user.country || "Non spécifié"}</p>
+          <p><strong>Pays :</strong> {user.country || "Non spécifié"}</p>
         </div>
+      ) : (
+        <p>Utilisateur non trouvé</p>
       )}
 
-        {console.log("proposalStatus before rendering:", proposalStatus)}
-        {proposalStatus === "pending" ? (
+      {proposalStatus === "pending" ? (
         <div className="btns">
-            <button className="refuse-button" onClick={() => handleStatusUpdate("refused")}>
+          <button className="refuse-button" onClick={() => handleStatusUpdate("refused")}>
             <i className="bi bi-x"></i> Refuser
-            </button>
-            <button className="accept-button" onClick={() => handleStatusUpdate("accepted")}>
+          </button>
+          <button className="accept-button" onClick={() => handleStatusUpdate("accepted")}>
             <i className="bi bi-check"></i> Accorder
-            </button>
+          </button>
         </div>
-        ) : (
-        <p className="status-message">{capitalizeFirstLetter(proposalStatus)}</p>
-        )}
+      ) : (
+        <p className="status-message">{capitalizeFirstLetter(proposalStatus || "Inconnu")}</p>
+      )}
 
-      {/* Affichage de la pop-up si l'image est ouverte */}
-      {isImageOpen && (
+      {isImageOpen && post?.image && (
         <div className="image-popup" onClick={handleCloseImage}>
           <img src={post.image} alt="Agrandie" className="popup-image" />
         </div>

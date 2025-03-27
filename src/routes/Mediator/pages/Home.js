@@ -3,6 +3,7 @@ import { supabase } from "../../../utils/supabaseClient";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import NavBar from "../components/NavBar";
+import "./Home.css";
 
 const Home = () => {
   const [shipPosts, setShipPosts] = useState([]);
@@ -91,7 +92,7 @@ const Home = () => {
                 Quantité: <span>{post.quantity} {post.unity}</span>
               </p>
               <p>
-                De: <span>{post.from} à: {post.to || "Non spécifié"}</span>
+                De: <span>{post.from}</span>À: <span>{post.to || "Non spécifié"}</span>
               </p>
               {proposalStatuses[post.id] ? (
                 <p style={{ color: "white" }} className={`proposal-status ${proposalStatuses[post.id]}`}>

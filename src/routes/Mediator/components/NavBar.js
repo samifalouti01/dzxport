@@ -98,10 +98,13 @@ const NavBar = () => {
           <span className="nav-text">Home</span>
         </Link>
 
-        <button className="nav-item add-post" onClick={() => setShowModal(true)}>
-          <i className="bi bi-plus-square nav-icon"></i>
-          <span className="nav-text">Add Post</span>
-        </button>
+        <Link
+          to="/transit/my-offers"
+          className={`nav-item ${location.pathname === "/transit/my-offers" ? "active" : ""}`}
+        >
+          <i className={`bi ${location.pathname === "/transit/my-offers" ? "bi bi-clipboard-check-fill" : "bi bi-clipboard-check"} nav-icon`}></i>
+          <span className="nav-text">Mes offres</span>
+        </Link>
 
         <Link
           to="/transit/profile"
@@ -111,65 +114,6 @@ const NavBar = () => {
           <span className="nav-text">Profile</span>
         </Link>
       </nav>
-
-      {showModal && (
-        <div className="modal-overlay">
-          <div
-            className="modal slide-in"
-            ref={modalRef}
-            onTouchStart={(e) => (touchStartY.current = e.touches[0].clientY)}
-            onTouchMove={(e) => {
-              if (e.touches[0].clientY - touchStartY.current > 50) closeModal();
-            }}
-          >
-            <button className="close-button" onClick={closeModal}>
-              ×
-            </button>
-            <h2>Ajouter une Offre</h2>
-            <form onSubmit={handleSubmit}>
-              <input
-                type="text"
-                name="title"
-                placeholder="Ajouter un titre"
-                value={formData.title}
-                onChange={handleChange}
-                required
-              />
-
-              <input
-                type="text"
-                name="from"
-                placeholder="De"
-                value={formData.from}
-                onChange={handleChange}
-                required
-              />
-
-              <input
-                type="text"
-                name="to"
-                placeholder="À"
-                value={formData.to}
-                onChange={handleChange}
-                required
-              />
-
-              <input
-                type="text"
-                name="price"
-                placeholder="Prix"
-                value={formData.price}
-                onChange={handleChange}
-                required
-              />
-
-              <button type="submit" disabled={loading}>
-                {loading ? "Ajout en cours..." : "Ajouter"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 };
