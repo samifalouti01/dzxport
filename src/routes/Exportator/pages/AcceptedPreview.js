@@ -6,232 +6,249 @@ import "./Notifications.css";
 const AcceptedPreview = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  
-  const [state, setState] = useState({
-    post: null,
-    user: null,
-    loading: true,
-    isImageOpen: false,
-    proposalStatus: null,
-    currentUserCountry: null,
-    senderId: null,
-    shippingSent: false
-  });
 
-  // Helper function to update state
-  const updateState = (updates) => {
-    setState(prev => ({ ...prev, ...updates }));
+  const [post, setPost] = useState(null);
+  const [owner, setOwner] = useState(null);
+  const [sender, setSender] = useState(null);
+  const [currentUser, setCurrentUser] = useState({ id: null, country: null });
+  const [shippingSent, setShippingSent] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isImageOpen, setIsImageOpen] = useState(false);
+  const [error, setError] = useState(null);
+  const [isOwnerView, setIsOwnerView] = useState(false); // Track if user is owner or sender
+
+  // Fetch post data
+  const fetchPost = async () => {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, created_at, user_id, product, image, from, quantity, unity, lists")
+      .eq("id", postId)
+      .single();
+    if (error) throw new Error(`Post fetch error: ${error.message}`);
+    return data;
   };
 
-  // Fetch post and users data
+  // Fetch user data
+  const fetchUser = async (userId) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, username, phone, email, role, country")
+      .eq("id", userId)
+      .single();
+    if (error) throw new Error(`User fetch error: ${error.message}`);
+    return data;
+  };
+
+  // Fetch accepted proposal and determine user role
+  const fetchProposal = async (userId) => {
+    // Try as sender first
+    let { data: senderProposal, error: senderError } = await supabase
+      .from("proposals")
+      .select("sender_id, owner_id, status")
+      .eq("post_id", postId)
+      .eq("sender_id", userId)
+      .eq("status", "accepted")
+      .single();
+
+    if (senderProposal) {
+      setIsOwnerView(false);
+      return senderProposal;
+    } else if (senderError && senderError.code !== "PGRST116") {
+      throw new Error(`Sender proposal fetch error: ${senderError.message}`);
+    }
+
+    // Try as owner
+    let { data: ownerProposal, error: ownerError } = await supabase
+      .from("proposals")
+      .select("sender_id, owner_id, status")
+      .eq("post_id", postId)
+      .eq("owner_id", userId)
+      .eq("status", "accepted")
+      .single();
+
+    if (ownerProposal) {
+      setIsOwnerView(true);
+      return ownerProposal; // Fixed: Removed erroneous 'return usual'
+    } else if (ownerError && ownerError.code !== "PGRST116") {
+      throw new Error(`Owner proposal fetch error: ${ownerError.message}`);
+    }
+
+    throw new Error("No accepted proposal found for this user");
+  };
+
+  // Fetch current user
+  const fetchCurrentUser = async () => {
+    const userId = localStorage.getItem("id");
+    if (!userId) throw new Error("Please log in to view this page");
+    const { data, error } = await supabase
+      .from("users")
+      .select("id, country")
+      .eq("id", userId)
+      .single();
+    if (error) throw new Error(`Current user fetch error: ${error.message}`);
+    return { id: data.id, country: data.country };
+  };
+
+  // Check shipping status
+  const checkShippingStatus = async (userId) => {
+    if (!userId) return false;
+    const { data, error } = await supabase
+      .from("ship_posts")
+      .select("id")
+      .eq("post_id", postId)
+      .eq("sender_id", userId)
+      .maybeSingle();
+    if (error) throw new Error(`Shipping status error: ${error.message}`);
+    return !!data;
+  };
+
   useEffect(() => {
-    const fetchPostAndUsers = async () => {
-      if (!postId) {
-        updateState({ loading: false });
-        return;
-      }
-
+    const loadData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Fetch post data
-        const { data: postData, error: postError } = await supabase
-          .from("posts")
-          .select("id, created_at, user_id, product, image, from, quantity, unity, lists")
-          .eq("id", postId)
-          .single();
+        const currentUserData = await fetchCurrentUser();
+        const postData = await fetchPost();
+        if (!postData) throw new Error("No post data found");
 
-        if (postError) {
-          console.error("Error fetching post:", postError.message);
-          updateState({ loading: false });
-          return;
-        }
+        const proposalData = await fetchProposal(currentUserData.id);
+        const ownerData = await fetchUser(proposalData.owner_id);
+        const senderData = await fetchUser(proposalData.sender_id);
+        const shippingStatus = await checkShippingStatus(currentUserData.id);
 
-        // Fetch proposal data
-        const { data: proposalData, error: proposalError } = await supabase
-          .from("proposals")
-          .select("owner_id, status")
-          .eq("post_id", postId)
-          .maybeSingle();
-
-        if (proposalError) {
-          console.error("Error fetching proposal:", proposalError.message);
-        }
-
-        // Fetch user data based on proposal or post
-        const userId = proposalData?.owner_id || postData?.user_id;
-        let userData = null;
-
-        if (userId) {
-          const { data: userInfo, error: userError } = await supabase
-            .from("users")
-            .select("username, phone, email, role")
-            .eq("id", userId)
-            .single();
-
-          if (userError) {
-            console.error("Error fetching user:", userError.message);
-          } else {
-            userData = userInfo;
-          }
-        }
-
-        updateState({
-          post: postData,
-          user: userData,
-          proposalStatus: proposalData?.status,
-          loading: false
-        });
-
+        setPost(postData);
+        setOwner(ownerData);
+        setSender(senderData);
+        setCurrentUser(currentUserData);
+        setShippingSent(shippingStatus);
       } catch (err) {
-        console.error("General error:", err);
-        updateState({ loading: false });
+        console.error("Error loading data:", err.message);
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchPostAndUsers();
+    if (postId) loadData();
   }, [postId]);
 
-  // Fetch current user's country
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      const userId = localStorage.getItem("id");
-      if (!userId) return;
+  const handleCreateShippingOffer = async () => {
+    if (!post || !currentUser.id || !currentUser.country) return;
 
-      const { data: userData, error } = await supabase
-        .from("users")
-        .select("id, country")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user country:", error.message);
-      } else {
-        updateState({ 
-          currentUserCountry: userData.country,
-          senderId: userData.id 
-        });
-      }
+    const shippingOffer = {
+      post_id: post.id,
+      user_id: post.user_id,
+      product: post.product,
+      from: post.from,
+      to: currentUser.country,
+      quantity: post.quantity,
+      unity: post.unity,
+      image: post.image || null,
+      sender_id: currentUser.id,
     };
 
-    fetchCurrentUser();
-  }, []);
-
-  // Fetch shipping status
-  useEffect(() => {
-    const fetchShippingStatus = async () => {
-      if (!postId || !state.senderId) return;
-  
-      const { data: shipData, error } = await supabase
+    try {
+      const { data, error } = await supabase
         .from("ship_posts")
-        .select("id")
-        .eq("post_id", postId)
-        .eq("sender_id", state.senderId)
-        .maybeSingle();
-  
-      if (error) {
-        console.error("Error fetching shipping status:", error.message);
-      } else {
-        updateState({ shippingSent: !!shipData });
-      }
-    };
-  
-    fetchShippingStatus();
-  }, [postId, state.senderId]);
-
-  const handleBack = () => {
-    navigate(-1);
-  };
-
-  const handleImageClick = () => {
-    updateState({ isImageOpen: true });
-  };
-
-  const handleCloseImage = (e) => {
-    if (e.target.classList.contains("image-popup")) {
-      updateState({ isImageOpen: false });
-    }
-  };
-
-  const createShippingOffer = async () => {
-    if (!state.post || !state.currentUserCountry) return;
-
-    const { error } = await supabase
-      .from("ship_posts")
-      .insert([{
-        post_id: state.post.id,
-        user_id: state.post.user_id,
-        product: state.post.product,
-        from: state.post.from,
-        to: state.currentUserCountry,
-        quantity: state.post.quantity,
-        unity: state.post.unity,
-        image: state.post.image,
-        sender_id: state.senderId
-      }]);
-
-    if (error) {
-      console.error("Error creating shipping offer:", error.message);
-    } else {
+        .insert(shippingOffer)
+        .select();
+      if (error) throw new Error(`Shipping offer error: ${error.message}`);
       alert("Shipping offer created successfully!");
-      updateState({ shippingSent: true });
+      setShippingSent(true);
+    } catch (err) {
+      console.error(err.message);
+      alert("Failed to create shipping offer");
     }
   };
 
-  if (state.loading) {
-    return <p className="loading">Loading...</p>;
-  }
+  const handleBack = () => navigate(-1);
+  const handleImageClick = () => setIsImageOpen(true);
+  const handleCloseImage = (e) => {
+    if (e.target.classList.contains("image-popup")) setIsImageOpen(false);
+  };
 
-  if (!state.post) {
-    return <p className="error">No post found</p>;
-  }
+  if (loading) return <p className="loading">Loading...</p>;
+  if (error) return <p className="error">Error: {error}</p>;
+  if (!post) return <p className="error">No post found</p>;
 
   return (
-    <div className="alert-container">
+    <div className="alert-container1">
       <button onClick={handleBack} className="backButton">
-        <i className="bi bi-chevron-left"></i> {state.post.product || "Unknown"}
+        <i className="bi bi-chevron-left"></i> {post.product || "Unknown"}
       </button>
-      
+
       <div className="alert-card">
-        {state.post.image && (
+        {post.image && (
           <img
-            src={state.post.image}
-            alt={state.post.product}
+            src={post.image}
+            alt={post.product}
             className="alert-image"
             onClick={handleImageClick}
+            onError={(e) => {
+              console.log("Image failed to load:", post.image);
+              e.target.style.display = "none";
+            }}
           />
         )}
-        
         <div className="alert-info">
-          <h3 className="alert-title">Product: {state.post.product || "Unknown"}</h3>
-          <p className="alert-detail">Quantity: <span>{state.post.quantity || "Not specified"} {state.post.unity}</span></p>
-          <p className="alert-detail">From: <span>{state.post.from || "Anonymous"}</span></p>
-          <p className="alert-detail">Posted on: <span>{new Date(state.post.created_at).toLocaleString()}</span></p>
+          <h3 className="alert-title">Product: {post.product || "Unknown"}</h3>
+          <p className="alert-detail">
+            Quantity: <span>{post.quantity || "Not specified"} {post.unity}</span>
+          </p>
+          <p className="alert-detail">
+            From: <span>{post.from || "Anonymous"}</span>
+          </p>
+          <p className="alert-detail">
+            Posted on: <span>{new Date(post.created_at).toLocaleString()}</span>
+          </p>
         </div>
       </div>
 
-      {state.user && (
+      {/* Display user info based on role */}
+      {isOwnerView && sender ? (
+        <div className="user-info">
+          <h3>Sender Information</h3>
+          <p><strong>Username:</strong> {sender.username || "Unknown"}</p>
+          <p><strong>Phone:</strong> {sender.phone || "Not specified"}</p>
+          <p><strong>Email:</strong> {sender.email || "Not specified"}</p>
+          <p><strong>Country:</strong> {sender.country || "Not specified"}</p>
+        </div>
+      ) : !isOwnerView && owner ? (
         <div className="user-info">
           <h3>Owner Information</h3>
-          <p><strong>Username:</strong> {state.user.username || "Unknown"}</p>
-          <p><strong>Phone:</strong> {state.user.phone || "Not specified"}</p>
-          <p><strong>Email:</strong> {state.user.email || "Not specified"}</p>
+          <p><strong>Username:</strong> {owner.username || "Unknown"}</p>
+          <p><strong>Phone:</strong> {owner.phone || "Not specified"}</p>
+          <p><strong>Email:</strong> {owner.email || "Not specified"}</p>
+          <p><strong>Country:</strong> {owner.country || "Not specified"}</p>
         </div>
+      ) : (
+        <p className="error">User information not available</p>
       )}
 
-      {state.post.lists === "acheter" && (
-        <div className="ship-container">
-          <button
-            className="shipping-offer-btn"
-            onClick={createShippingOffer}
-            disabled={state.shippingSent}
-          >
-            {state.shippingSent ? "Sent" : "Create Shipping Offer"}
-          </button>
-        </div>
-      )}
+      {/* Shipping offer section */}
+      <div className="ship-container">
+        <button
+          className="shipping-offer-btn"
+          onClick={handleCreateShippingOffer}
+          disabled={shippingSent || !isOwnerView}
+        >
+          {shippingSent
+            ? "Shipping Offer Sent"
+            : isOwnerView
+            ? "Create Shipping Offer"
+            : "Shipping Offer (Owner Only)"}
+        </button>
+        {!isOwnerView && (
+          <p className="info-text"></p>
+        )}
+        {isOwnerView && !shippingSent && (
+          <p className="info-text"></p>
+        )}
+      </div>
 
-      {state.isImageOpen && (
+      {isImageOpen && (
         <div className="image-popup" onClick={handleCloseImage}>
-          <img src={state.post.image} alt="Enlarged" className="popup-image" />
+          <img src={post.image} alt="Enlarged" className="popup-image" />
         </div>
       )}
     </div>

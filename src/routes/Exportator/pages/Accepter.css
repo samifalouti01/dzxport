@@ -68,3 +68,9 @@
         width: 100%;
     }
 }
+
+.owner-note {
+    color: #0066cc;
+    font-size: 0.9em;
+    margin-top: 10px;
+}
