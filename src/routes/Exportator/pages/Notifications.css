@@ -212,8 +212,8 @@
   }
 
   .shipping-offer-btn:disabled {
-    background-color: #ccc !important;
-    cursor: not-allowed !important;
+    background-color: #ccc;
+    cursor: not-allowed;
   }
   
   .transit-info {
