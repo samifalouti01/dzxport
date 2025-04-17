@@ -37,7 +37,7 @@ const NavBar = () => {
             className={`nav-item ${location.pathname === "/main/transiteurs" ? "active" : ""}`}
         >
             <i className={`bi ${location.pathname === "/main/transiteurs" ? "bi-train-freight-front-fill" : "bi-train-freight-front"} nav-icon`}></i>
-            <span className="nav-text">Transits</span>
+            <span className="nav-text">Transit</span>
         </Link>
 
         <Link
