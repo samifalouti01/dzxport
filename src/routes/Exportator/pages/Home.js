@@ -235,7 +235,7 @@ const Home = () => {
                 Quantité: <span>{post.quantity} {post.unity}</span>
               </p>
               <p>
-                {post.lists === "vendre" ? "Vers" : "De"}: <span>{post.from}</span>
+                {post.lists === "acheter" ? "Vers" : "De"}: <span>{post.from}</span>
               </p>
               {proposalStatuses[post.id] ? (
                 <p style={{ color: "white" }} className={`proposal-status ${proposalStatuses[post.id]}`}>
